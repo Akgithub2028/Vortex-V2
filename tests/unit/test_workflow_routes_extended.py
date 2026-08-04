@@ -14,12 +14,7 @@ from vortex.engine.state import DAGDefinition, NodeDefinition, WorkflowState, Wo
 
 @pytest.mark.asyncio
 async def test_workflow_idempotency_hit(async_client):
-    dag = {
-        "name": "test-idempotency",
-        "nodes": [
-            {"id": "n1", "type": "tool", "config": {"tool_name": "calculator", "expression": "2+2"}}
-        ]
-    }
+    dag = {"name": "test-idempotency", "nodes": [{"id": "n1", "type": "tool", "config": {"tool_name": "calculator", "expression": "2+2"}}]}
     req_data = {
         "dag": dag,
         "input": {"x": 10},
@@ -40,12 +35,7 @@ async def test_workflow_idempotency_hit(async_client):
 
 @pytest.mark.asyncio
 async def test_workflow_stream_endpoint(async_client):
-    dag = {
-        "name": "test-stream",
-        "nodes": [
-            {"id": "n1", "type": "tool", "config": {"tool_name": "calculator", "expression": "5*5"}}
-        ]
-    }
+    dag = {"name": "test-stream", "nodes": [{"id": "n1", "type": "tool", "config": {"tool_name": "calculator", "expression": "5*5"}}]}
     req_data = {"dag": dag, "input": {}}
 
     res = await async_client.post("/v1/workflows/stream", json=req_data)
