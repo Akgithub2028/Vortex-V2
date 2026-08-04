@@ -1,4 +1,4 @@
-# Vortex — Open-Source AI Execution Engine
+# VoRTeX — Open-Source AI Execution Engine
 
 [![CI Pipeline](https://img.shields.io/badge/CI%2FCD-Passing-10b981?style=for-the-badge&logo=githubactions)](https://github.com/Akgithub2028/vortex/actions)
 [![Coverage](https://img.shields.io/badge/Coverage-90.04%25-10b981?style=for-the-badge)](tests/)
