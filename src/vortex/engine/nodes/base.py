@@ -5,9 +5,10 @@ Abstract base node interface for Vortex engine.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from vortex.engine.state import NodeDefinition, WorkflowState
+if TYPE_CHECKING:
+    from vortex.engine.state import NodeDefinition, WorkflowState
 
 
 class BaseNode(ABC):

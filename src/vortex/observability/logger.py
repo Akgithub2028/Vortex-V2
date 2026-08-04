@@ -16,9 +16,7 @@ import structlog
 from vortex.config import Environment, get_settings
 
 
-def _add_service_context(
-    logger: Any, method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+def _add_service_context(logger: Any, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     """Inject service-level context into every log entry."""
     settings = get_settings()
     event_dict.setdefault("service", settings.service_name)
@@ -27,9 +25,7 @@ def _add_service_context(
     return event_dict
 
 
-def _add_otel_context(
-    logger: Any, method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+def _add_otel_context(logger: Any, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     """Inject OpenTelemetry trace context if a span is active."""
     try:
         from opentelemetry import trace
@@ -92,9 +88,7 @@ def setup_logging() -> None:
 
     # Quiet noisy libraries
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(
-        logging.DEBUG if settings.database_echo else logging.WARNING
-    )
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG if settings.database_echo else logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 

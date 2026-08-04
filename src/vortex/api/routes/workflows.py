@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, AsyncGenerator, Optional
 import uuid
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel, Field
@@ -29,6 +29,9 @@ from vortex.observability.logger import get_logger
 from vortex.storage.database import get_session
 from vortex.storage.models import WorkflowRun
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
 logger = get_logger(__name__)
 router = APIRouter(prefix="/v1/workflows", tags=["Workflows"])
 
@@ -36,15 +39,15 @@ router = APIRouter(prefix="/v1/workflows", tags=["Workflows"])
 class RunWorkflowRequest(BaseModel):
     dag: DAGDefinition
     input: dict[str, Any] = Field(default_factory=dict)
-    max_cost_usd: Optional[float] = None
-    idempotency_key: Optional[str] = None
+    max_cost_usd: float | None = None
+    idempotency_key: str | None = None
 
 
 class WorkflowRunResponse(BaseModel):
     id: uuid.UUID
     status: str
     input: dict[str, Any]
-    output: Optional[dict[str, Any]]
+    output: dict[str, Any] | None
     total_tokens: int
     total_cost_usd: float
     created_at: str
@@ -52,7 +55,7 @@ class WorkflowRunResponse(BaseModel):
 
 class ApproveNodeRequest(BaseModel):
     approved: bool = True
-    feedback: Optional[str] = None
+    feedback: str | None = None
 
 
 @router.post(
@@ -180,17 +183,19 @@ async def stream_workflow(
                     "event": event_type,
                     "data": json.dumps(payload),
                 }
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
         final_state = await execution_task
         yield {
             "event": "workflow.finished",
-            "data": json.dumps({
-                "run_id": str(final_state.run_id),
-                "status": final_state.status.value,
-                "completed_nodes": list(final_state.completed_nodes.keys()),
-            }),
+            "data": json.dumps(
+                {
+                    "run_id": str(final_state.run_id),
+                    "status": final_state.status.value,
+                    "completed_nodes": list(final_state.completed_nodes.keys()),
+                }
+            ),
         }
 
     return EventSourceResponse(event_generator())

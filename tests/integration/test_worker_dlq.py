@@ -3,9 +3,9 @@ Integration tests for WorkflowWorker, TaskScheduler, and Dead Letter Queue (DLQ)
 """
 
 import uuid
+
 import pytest
 
-from vortex.engine.scheduler import TaskScheduler
 from vortex.engine.worker import WorkflowWorker
 from vortex.storage.database import get_session
 from vortex.storage.models import WorkflowRun

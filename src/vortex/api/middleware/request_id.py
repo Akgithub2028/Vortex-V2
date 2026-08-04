@@ -8,12 +8,16 @@ Binds `request_id` to structlog context vars for log correlation.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import structlog
-from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from ulid import ULID
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from fastapi import Request, Response
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):

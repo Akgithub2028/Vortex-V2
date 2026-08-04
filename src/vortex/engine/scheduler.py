@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from vortex.observability.logger import get_logger
 from vortex.storage.redis import get_redis

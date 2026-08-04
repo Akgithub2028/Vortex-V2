@@ -84,6 +84,7 @@ async def test_checkpoint_save_creates_new_run(async_client):
     # Verify it was created in DB
     async with get_session() as session:
         from sqlalchemy import select
+
         stmt = select(WorkflowRun).where(WorkflowRun.id == run_id)
         res = await session.execute(stmt)
         run = res.scalar_one_or_none()
@@ -177,6 +178,7 @@ async def test_checkpoint_save_terminal_sets_completed_at(async_client):
 
     async with get_session() as session:
         from sqlalchemy import select
+
         stmt = select(WorkflowRun).where(WorkflowRun.id == run_id)
         res = await session.execute(stmt)
         run = res.scalar_one()

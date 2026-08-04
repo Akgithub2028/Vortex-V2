@@ -4,7 +4,8 @@ Fluent Workflow graph builder for the Vortex Python SDK.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -13,16 +14,16 @@ class WorkflowNode(BaseModel):
 
     id: str
     type: str  # llm | tool | branch | parallel | eval | human
-    config: Dict[str, Any] = Field(default_factory=dict)
-    dependencies: List[str] = Field(default_factory=list)
+    config: dict[str, Any] = Field(default_factory=dict)
+    dependencies: list[str] = Field(default_factory=list)
 
 
 def yield_task(
     node_id: str,
     type: str,
-    config: Optional[Dict[str, Any]] = None,
-    dependencies: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    config: dict[str, Any] | None = None,
+    dependencies: list[str] | None = None,
+) -> dict[str, Any]:
     """SDK helper to dynamically yield sub-tasks at runtime."""
     return {
         "_yielded_nodes": [
@@ -49,8 +50,8 @@ class Workflow(BaseModel):
 
     name: str
     version: int = 1
-    description: Optional[str] = None
-    nodes: List[WorkflowNode] = Field(default_factory=list)
+    description: str | None = None
+    nodes: list[WorkflowNode] = Field(default_factory=list)
 
     def add_llm_node(
         self,
@@ -58,7 +59,7 @@ class Workflow(BaseModel):
         prompt: str,
         model: str = "openai/gpt-4o",
         temperature: float = 0.7,
-        dependencies: Optional[List[str]] = None,
+        dependencies: list[str] | None = None,
     ) -> Workflow:
         """Add an LLM inference node."""
         node = WorkflowNode(
@@ -78,8 +79,8 @@ class Workflow(BaseModel):
         self,
         node_id: str,
         tool_name: str,
-        tool_args: Optional[Dict[str, Any]] = None,
-        dependencies: Optional[List[str]] = None,
+        tool_args: dict[str, Any] | None = None,
+        dependencies: list[str] | None = None,
     ) -> Workflow:
         """Add a tool/function execution node."""
         node = WorkflowNode(
@@ -100,7 +101,7 @@ class Workflow(BaseModel):
         condition_variable: str,
         truthy_target: str,
         falsy_target: str,
-        dependencies: Optional[List[str]] = None,
+        dependencies: list[str] | None = None,
     ) -> Workflow:
         """Add a conditional routing branch node."""
         node = WorkflowNode(
@@ -119,8 +120,8 @@ class Workflow(BaseModel):
     def add_parallel_node(
         self,
         node_id: str,
-        branches: List[str],
-        dependencies: Optional[List[str]] = None,
+        branches: list[str],
+        dependencies: list[str] | None = None,
     ) -> Workflow:
         """Add a parallel fan-out node."""
         node = WorkflowNode(
@@ -138,7 +139,7 @@ class Workflow(BaseModel):
         target_node: str,
         scorer_name: str = "faithfulness",
         threshold: float = 0.7,
-        dependencies: Optional[List[str]] = None,
+        dependencies: list[str] | None = None,
     ) -> Workflow:
         """Add an inline quality evaluation gate node."""
         node = WorkflowNode(
@@ -158,7 +159,7 @@ class Workflow(BaseModel):
         self,
         node_id: str,
         instructions: str = "Review output before proceeding",
-        dependencies: Optional[List[str]] = None,
+        dependencies: list[str] | None = None,
     ) -> Workflow:
         """Add a human-in-the-loop (HITL) approval pause node."""
         node = WorkflowNode(
@@ -170,6 +171,6 @@ class Workflow(BaseModel):
         self.nodes.append(node)
         return self
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Export workflow specification dictionary payload."""
         return self.model_dump(mode="json")

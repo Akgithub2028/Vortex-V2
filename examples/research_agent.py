@@ -3,6 +3,7 @@ Multi-step Research Agent Workflow with Tool Node using Vortex SDK.
 """
 
 import asyncio
+
 from vortex.sdk import VortexClient, Workflow
 
 
@@ -25,12 +26,8 @@ async def main():
     )
 
     client = VortexClient(base_url="http://localhost:8000")
-    print("Executing research pipeline...")
 
-    run = await client.run_workflow(wf, input={"query": "Latest advances in protein structure prediction"})
-    print(f"Run ID: {run.id} | Status: {run.status}")
-    print(f"Cost: ${run.total_cost_usd:.6f}")
-    print("Output:", run.output)
+    await client.run_workflow(wf, input={"query": "Latest advances in protein structure prediction"})
 
 
 if __name__ == "__main__":

@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import ClassVar, Optional
-import uuid
+from typing import ClassVar
 
 from vortex.observability.logger import get_logger
 from vortex.storage.redis import get_redis

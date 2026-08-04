@@ -2,15 +2,16 @@
 Unit tests for Vortex StateProjector CQRS component.
 """
 
+import uuid
 from datetime import datetime
 from decimal import Decimal
+
 import pytest
-import uuid
 
 from vortex.engine.projector import StateProjector
 from vortex.engine.state import WorkflowStatus
 from vortex.storage.database import get_session, init_db
-from vortex.storage.models import WorkflowEvent, WorkflowRun
+from vortex.storage.models import WorkflowEvent
 
 
 @pytest.mark.asyncio
@@ -179,4 +180,3 @@ async def test_state_projector_human_and_failure_events():
     assert "h1" in state.completed_nodes
     assert state.failed_nodes["n2"] == "API Error"
     assert state.variables["_workflow_error"] == "API Error"
-

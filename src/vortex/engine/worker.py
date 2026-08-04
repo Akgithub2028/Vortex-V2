@@ -8,15 +8,13 @@ applies retry logic with exponential backoff, and routes exhausted tasks to `vor
 from __future__ import annotations
 
 import asyncio
-import json
-from typing import Any, Optional
 import uuid
+from typing import Any
 
-from vortex.config import get_settings
 from vortex.engine.checkpoint import CheckpointStore
 from vortex.engine.executor import DAGExecutor
 from vortex.engine.scheduler import TaskScheduler
-from vortex.engine.state import DAGDefinition, WorkflowState, WorkflowStatus
+from vortex.engine.state import DAGDefinition, WorkflowStatus
 from vortex.observability.logger import get_logger
 from vortex.observability.metrics import DLQ_SIZE, WORKFLOW_ACTIVE_RUNS, WORKFLOW_RUNS_TOTAL
 
@@ -113,7 +111,7 @@ class WorkflowWorker:
                 payload=task_data,
             )
 
-    async def run_loop(self, poll_interval_seconds: float = 1.0, max_iterations: Optional[int] = None) -> None:
+    async def run_loop(self, poll_interval_seconds: float = 1.0, max_iterations: int | None = None) -> None:
         """Worker main loop polling tasks and recovering orphaned workflows."""
         self.running = True
         logger.info("Started WorkflowWorker loop", consumer_name=self.consumer_name)

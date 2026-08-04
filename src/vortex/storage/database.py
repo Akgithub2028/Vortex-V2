@@ -7,8 +7,8 @@ async session factory for FastAPI routes and background workers.
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -20,6 +20,9 @@ from sqlalchemy.orm import DeclarativeBase
 
 from vortex.config import get_settings
 from vortex.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 logger = get_logger(__name__)
 

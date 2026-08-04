@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, AsyncGenerator, ClassVar
 import uuid
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from vortex.observability.logger import get_logger
 from vortex.storage.redis import get_redis
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 logger = get_logger(__name__)
 
@@ -91,7 +94,7 @@ class StreamChannel:
                     yield payload
                     if payload.get("is_final"):
                         break
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
         finally:
             async with cls._lock:

@@ -4,10 +4,9 @@ Google Gemini Provider Adapter.
 
 from __future__ import annotations
 
-import os
-from ulid import ULID
 from google import genai
 from google.genai import types
+from ulid import ULID
 
 from vortex.gateway.providers.base import BaseProvider, CompletionRequest, CompletionResponse
 from vortex.observability.logger import get_logger
@@ -35,12 +34,7 @@ class GoogleProvider(BaseProvider):
                 role = "user"
             elif role == "assistant":
                 role = "model"
-            contents.append(
-                types.Content(
-                    role=role,
-                    parts=[types.Part.from_text(text=msg.get("content", ""))]
-                )
-            )
+            contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg.get("content", ""))]))
 
         config = types.GenerateContentConfig(
             temperature=request.temperature,
@@ -48,6 +42,7 @@ class GoogleProvider(BaseProvider):
         )
 
         import asyncio
+
         from google.genai.errors import APIError
 
         max_retries = 3
@@ -67,7 +62,7 @@ class GoogleProvider(BaseProvider):
                     raise
 
         content = response.text if response.text else ""
-        
+
         # Very rough cost estimation for Gemini Flash
         tokens_in = len(str(contents)) // 4
         tokens_out = len(content) // 4

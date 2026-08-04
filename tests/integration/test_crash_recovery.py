@@ -9,6 +9,7 @@ Simulates process crashes mid-workflow and verifies:
 """
 
 import uuid
+
 import pytest
 
 from vortex.engine.checkpoint import CheckpointStore
@@ -16,8 +17,6 @@ from vortex.engine.executor import DAGExecutor
 from vortex.engine.scheduler import TaskScheduler
 from vortex.engine.state import DAGDefinition, WorkflowState, WorkflowStatus
 from vortex.engine.worker import WorkflowWorker
-from vortex.storage.database import get_session
-from vortex.storage.models import WorkflowRun
 
 
 @pytest.mark.integration
@@ -38,9 +37,7 @@ async def test_crash_recovery_resumes_from_checkpoint(async_client):
     }
 
     # Simulate Phase 1: Step 1 completed before crash
-    partial_completed_nodes = {
-        "step1": "Step 1 generated outline successfully."
-    }
+    partial_completed_nodes = {"step1": "Step 1 generated outline successfully."}
     variables = {
         "topic": "AI Resilience",
         "step1": "Step 1 generated outline successfully.",

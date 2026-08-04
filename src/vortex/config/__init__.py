@@ -7,7 +7,7 @@ Uses pydantic-settings for validation, type coercion, and .env file loading.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, StrEnum
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -16,14 +16,14 @@ from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Environment(str, Enum):
+class Environment(StrEnum):
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
     TESTING = "testing"
 
 
-class LogLevel(str, Enum):
+class LogLevel(StrEnum):
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -173,8 +173,7 @@ class Settings(BaseSettings):
             import warnings
 
             warnings.warn(
-                "VORTEX_JWT_SECRET_KEY is using the default value. "
-                "Set a strong secret in production.",
+                "VORTEX_JWT_SECRET_KEY is using the default value. Set a strong secret in production.",
                 UserWarning,
                 stacklevel=2,
             )

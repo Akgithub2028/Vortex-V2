@@ -11,8 +11,8 @@ import base64
 import hashlib
 import json
 import os
-from typing import Any
 import uuid
+from typing import TYPE_CHECKING, Any
 
 from vortex.config import get_settings
 from vortex.observability.logger import get_logger

@@ -8,8 +8,8 @@ Provides prefix hashing and consistent hash routing to send requests sharing com
 from __future__ import annotations
 
 import hashlib
-from typing import ClassVar, Optional
 import zlib
+from typing import ClassVar
 
 from vortex.observability.logger import get_logger
 from vortex.storage.redis import get_redis
@@ -46,7 +46,7 @@ class KVCacheAffinityRouter:
         cls,
         prefix_hash: str,
         available_replicas: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Select a target replica using consistent hashing or stored affinity binding.
         """

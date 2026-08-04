@@ -3,6 +3,7 @@ RAG Workflow with Inline Faithfulness Evaluation Gate using Vortex SDK.
 """
 
 import asyncio
+
 from vortex.sdk import VortexClient, Workflow
 
 
@@ -26,18 +27,14 @@ async def main():
     )
 
     client = VortexClient(base_url="http://localhost:8000")
-    print("Running RAG workflow with quality gate...")
 
-    run = await client.run_workflow(
+    await client.run_workflow(
         wf,
         input={
             "context": "PostgreSQL 16 added support for pgvector IVFFlat and HNSW vector index acceleration.",
             "question": "What vector index algorithms does PostgreSQL 16 support via pgvector?",
         },
     )
-
-    print(f"Run ID: {run.id} | Status: {run.status}")
-    print("Output:", run.output)
 
 
 if __name__ == "__main__":

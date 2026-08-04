@@ -3,6 +3,7 @@ Human-in-the-Loop (HITL) Workflow Pause & Approve Example using Vortex SDK.
 """
 
 import asyncio
+
 from vortex.sdk import VortexClient, Workflow
 
 
@@ -25,20 +26,15 @@ async def main():
     client = VortexClient(base_url="http://localhost:8000")
 
     # 1. Submit workflow (will pause at HITL node)
-    print("1. Submitting HITL workflow...")
     run = await client.run_workflow(wf, input={"environment": "production"})
-    print(f"Run ID: {run.id} | Initial Status: {run.status}")
 
     if run.status == "AWAITING_APPROVAL":
-        print("\n2. Simulating Human Approval...")
-        resumed_run = await client.approve_human_node(
+        await client.approve_human_node(
             run_id=run.id,
             node_id="reviewer_signoff",
             approved=True,
             feedback="Approved by Staff DevOps Lead",
         )
-        print(f"3. Resumed Status: {resumed_run.status}")
-        print("Final Output:", resumed_run.output)
 
 
 if __name__ == "__main__":

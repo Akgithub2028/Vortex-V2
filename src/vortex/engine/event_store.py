@@ -10,16 +10,18 @@ Provides high-performance immutable event logging for workflows:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from typing import Any, ClassVar, Optional
 import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from vortex.observability.logger import get_logger
 from vortex.storage.database import get_session
 from vortex.storage.models import WorkflowEvent
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -37,7 +39,7 @@ class EventStore:
         run_id: uuid.UUID | str,
         event_type: str,
         event_data: dict[str, Any],
-        session: Optional[AsyncSession] = None,
+        session: AsyncSession | None = None,
     ) -> WorkflowEvent:
         """
         Atomically append an event to the workflow_events table with auto-incrementing sequence_number.
@@ -88,9 +90,7 @@ class EventStore:
         event_data: dict[str, Any],
     ) -> WorkflowEvent:
         """Internal helper to calculate max sequence and insert event record."""
-        stmt = select(func.coalesce(func.max(WorkflowEvent.sequence_number), 0)).where(
-            WorkflowEvent.run_id == run_id
-        )
+        stmt = select(func.coalesce(func.max(WorkflowEvent.sequence_number), 0)).where(WorkflowEvent.run_id == run_id)
         res = await session.execute(stmt)
         max_seq = res.scalar() or 0
         next_seq = max_seq + 1
@@ -113,7 +113,7 @@ class EventStore:
         cls,
         run_id: uuid.UUID | str,
         min_sequence: int = 0,
-        session: Optional[AsyncSession] = None,
+        session: AsyncSession | None = None,
     ) -> list[WorkflowEvent]:
         """Fetch all events for a given run_id ordered by sequence_number."""
         rid = uuid.UUID(str(run_id)) if isinstance(run_id, str) else run_id

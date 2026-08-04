@@ -21,24 +21,20 @@ class PromptInjectionValidator(BaseValidator):
 
     INJECTION_PATTERNS: ClassVar[list[tuple[str, float, str]]] = [
         # (regex pattern, risk weight, description)
-        
         # Instruction Overrides
         (r"(?i)ignore\s+(all\s+)?(previous|above)\s+instructions?", 0.95, "Instruction override attempt"),
         (r"(?i)disregard\s+(all\s+)?(your\s+)?prior\s+directives?", 0.95, "Prior directive override"),
         (r"(?i)system\s+override", 0.90, "System override attempt"),
         (r"(?i)bypass\s+(authentication|security|firewall)", 0.95, "Security bypass attempt"),
-        
         # Persona / Jailbreak Framing
         (r"(?i)you\s+are\s+(now\s+in\s+)?(DAN|Developer(\s+Mode)?|Jailbreak|malicious hacker)(\s+mode)?", 0.99, "Jailbreak mode framing"),
         (r"(?i)pretend\s+you\s+are\s+(an\s+)?unrestricted", 0.95, "Unrestricted persona framing"),
         (r"(?i)forget\s+your\s+previous\s+persona", 0.95, "Persona reset attempt"),
         (r"(?i)without\s+moral\s+constraints", 0.90, "Ethics bypass framing"),
         (r"(?i)\[INJECTION_SUCCESS\]", 0.99, "Injection payload signature"),
-        
         # System Prompt Extraction
         (r"(?i)(dump|print|reveal|output)\s+(your\s+)?(system\s+prompt|initial\s+instructions|context)", 0.90, "System prompt extraction"),
         (r"(?i)repeat\s+the\s+words\s+above", 0.70, "Upstream text extraction"),
-        
         # Malicious Actions & Payloads
         (r"(?i)build\s+a\s+bomb", 0.99, "Harmful instructions (explosives)"),
         (r"(?i)formula\s+for\s+meth", 0.99, "Harmful instructions (drugs)"),
@@ -54,7 +50,6 @@ class PromptInjectionValidator(BaseValidator):
         (r"(?i)steals?\s+cookies", 0.95, "Cyberattack (Cookie Theft)"),
         (r"(?i)SQL\s+injection", 0.95, "Cyberattack (SQLi)"),
         (r"(?i)secretly\s+record", 0.95, "Privacy violation (Surveillance)"),
-        
         # Classic Payloads
         (r"(?i)rm\s+-rf\s+/", 0.99, "Destructive shell command"),
         (r"\]\s*;\s*DROP\s+TABLE", 0.99, "SQL injection framing"),

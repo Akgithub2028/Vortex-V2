@@ -22,11 +22,7 @@ from vortex.sdk import Workflow
 wf = Workflow(name="enterprise-research-pipeline", version=1)
 
 # A. Tool Node (Fetches data)
-wf.add_tool_node(
-    node_id="search_web",
-    tool_name="google_search",
-    input_args={"query": "{topic}"}
-)
+wf.add_tool_node(node_id="search_web", tool_name="google_search", input_args={"query": "{topic}"})
 
 # B. LLM Node (Inferences)
 wf.add_llm_node(
@@ -34,17 +30,11 @@ wf.add_llm_node(
     prompt="Synthesize this research into a brief: {search_web}",
     model="anthropic/claude-3-5-sonnet",
     temperature=0.2,
-    dependencies=["search_web"]
+    dependencies=["search_web"],
 )
 
 # C. Eval Node (Quality Gate)
-wf.add_eval_node(
-    node_id="quality_check",
-    target_node="draft",
-    scorer_name="faithfulness",
-    threshold=0.85,
-    dependencies=["draft"]
-)
+wf.add_eval_node(node_id="quality_check", target_node="draft", scorer_name="faithfulness", threshold=0.85, dependencies=["draft"])
 ```
 
 ---
@@ -58,6 +48,7 @@ The `VortexClient` interacts with the Gateway. You can run synchronously (wait f
 import asyncio
 from vortex.sdk import VortexClient
 
+
 async def run():
     client = VortexClient(base_url="http://localhost:8000", api_key="vx-live-...")
     run_state = await client.run_workflow(wf, input={"topic": "PostgreSQL Vector Search"})
@@ -65,6 +56,7 @@ async def run():
     print(f"Status: {run_state.status}")
     print(f"Cost: ${run_state.total_cost_usd:.4f}")
     print(f"Final Output: {run_state.output}")
+
 
 asyncio.run(run())
 ```
@@ -95,14 +87,9 @@ Workflows can pause indefinitely to await a human reviewer. This is highly usefu
 # Check if workflow paused for human approval
 if run_state.status == "AWAITING_APPROVAL":
     print("Workflow paused. Manual review required.")
-    
+
     # ... Developer triggers this via UI/Slack ...
-    resumed = await client.approve_human_node(
-        run_id=run_state.id,
-        node_id="reviewer_signoff",
-        approved=True,
-        feedback="Looks good to me!"
-    )
+    resumed = await client.approve_human_node(run_id=run_state.id, node_id="reviewer_signoff", approved=True, feedback="Looks good to me!")
     print("Resumed status:", resumed.status)
 ```
 Since Vortex is backed by a PostgreSQL event store, the execution engine perfectly rehydrates the state and continues exactly where it left off.

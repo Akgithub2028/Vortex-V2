@@ -4,7 +4,7 @@ Unit tests for authentication middleware and API key creation routes.
 
 import pytest
 
-from vortex.api.errors import ForbiddenError, UnauthorizedError
+from vortex.api.errors import ForbiddenError
 from vortex.api.middleware.auth import AuthContext, require_role
 
 
@@ -91,4 +91,3 @@ async def test_route_level_rbac_enforcement(async_client):
     res_forbidden = await async_client.post("/v1/prompts", json=prompt_payload, headers=headers)
     assert res_forbidden.status_code == 403
     assert res_forbidden.json()["error"]["code"] == "FORBIDDEN"
-

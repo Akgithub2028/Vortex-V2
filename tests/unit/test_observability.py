@@ -2,6 +2,8 @@
 Unit tests for observability logging, metrics, and tracing setup.
 """
 
+import contextlib
+
 from vortex.observability.logger import get_logger, setup_logging
 from vortex.observability.metrics import setup_metrics
 from vortex.observability.tracer import get_tracer, setup_tracing
@@ -23,11 +25,10 @@ def test_tracer_setup(monkeypatch):
     assert tracer is None or hasattr(tracer, "start_span")
 
     from vortex.config import get_settings
+
     monkeypatch.setattr(get_settings(), "otel_enabled", True)
-    try:
+    with contextlib.suppress(ImportError, Exception):
         setup_tracing()
-    except (ImportError, Exception):
-        pass
     tracer_active = get_tracer("test_active_tracer")
     assert tracer_active is None or hasattr(tracer_active, "start_span")
 
@@ -35,13 +36,14 @@ def test_tracer_setup(monkeypatch):
 def test_logger_otel_span_context_injection():
     """Logger _add_otel_context should inject trace_id and span_id when OTel span is active."""
     from unittest.mock import MagicMock, patch
+
     from vortex.observability.logger import _add_otel_context
 
     # Mock an active span with a valid context
     class MockContext:
         trace_id = 123456789
         span_id = 987654321
-        
+
     mock_span = MagicMock()
     mock_span.get_span_context.return_value = MockContext()
 
@@ -57,7 +59,8 @@ def test_logger_otel_span_context_injection():
 
 def test_logger_production_json_renderer():
     """setup_logging with production environment should use JSON renderer."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from vortex.config import Environment
 
     mock_settings = MagicMock()
@@ -68,4 +71,3 @@ def test_logger_production_json_renderer():
     with patch("vortex.observability.logger.get_settings", return_value=mock_settings):
         setup_logging()
         # If no exception raised, production JSON renderer was configured
-

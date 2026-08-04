@@ -27,6 +27,7 @@ def test_circuit_breaker_recovery():
     assert cb.state == CircuitState.OPEN
 
     import time
+
     time.sleep(0.02)
 
     # Should enter HALF_OPEN on next call

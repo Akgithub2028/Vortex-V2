@@ -37,9 +37,11 @@ async def test_process_task_lease_not_acquired(worker):
 async def test_process_task_checkpoint_not_found(worker):
     """Missing checkpoint should return False."""
     run_id = str(uuid.uuid4())
-    with patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.engine.worker.CheckpointStore") as mock_cp:
+    with (
+        patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.engine.worker.CheckpointStore") as mock_cp,
+    ):
         mock_cp.load_checkpoint = AsyncMock(return_value=None)
         result = await worker.process_task({"run_id": run_id, "tenant_id": str(uuid.uuid4())})
         assert result is False
@@ -54,9 +56,11 @@ async def test_process_task_terminal_state(worker):
         tenant_id=uuid.uuid4(),
         status=WorkflowStatus.COMPLETED,
     )
-    with patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.engine.worker.CheckpointStore") as mock_cp:
+    with (
+        patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.engine.worker.CheckpointStore") as mock_cp,
+    ):
         mock_cp.load_checkpoint = AsyncMock(return_value=state)
         result = await worker.process_task({"run_id": str(run_id), "tenant_id": str(uuid.uuid4())})
         assert result is True
@@ -72,9 +76,11 @@ async def test_process_task_missing_dag(worker):
         status=WorkflowStatus.RUNNING,
         variables={},
     )
-    with patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.engine.worker.CheckpointStore") as mock_cp:
+    with (
+        patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.engine.worker.CheckpointStore") as mock_cp,
+    ):
         mock_cp.load_checkpoint = AsyncMock(return_value=state)
         result = await worker.process_task({"run_id": str(run_id), "tenant_id": str(uuid.uuid4())})
         assert result is False
@@ -91,10 +97,12 @@ async def test_process_task_execution_error(worker):
         status=WorkflowStatus.RUNNING,
         variables={"_dag": dag_dict},
     )
-    with patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.engine.worker.CheckpointStore") as mock_cp, \
-         patch("vortex.engine.worker.DAGExecutor") as mock_exec:
+    with (
+        patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.engine.worker.CheckpointStore") as mock_cp,
+        patch("vortex.engine.worker.DAGExecutor") as mock_exec,
+    ):
         mock_cp.load_checkpoint = AsyncMock(return_value=state)
         mock_exec_instance = MagicMock()
         mock_exec_instance.run = AsyncMock(side_effect=RuntimeError("Boom"))
@@ -117,10 +125,12 @@ async def test_process_task_success(worker):
     final_state = state.model_copy()
     final_state.status = WorkflowStatus.COMPLETED
 
-    with patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True), \
-         patch("vortex.engine.worker.CheckpointStore") as mock_cp, \
-         patch("vortex.engine.worker.DAGExecutor") as mock_exec:
+    with (
+        patch("vortex.storage.lease.LeaseManager.acquire_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.storage.lease.LeaseManager.release_lease", new_callable=AsyncMock, return_value=True),
+        patch("vortex.engine.worker.CheckpointStore") as mock_cp,
+        patch("vortex.engine.worker.DAGExecutor") as mock_exec,
+    ):
         mock_cp.load_checkpoint = AsyncMock(return_value=state)
         mock_exec_instance = MagicMock()
         mock_exec_instance.run = AsyncMock(return_value=final_state)
@@ -136,8 +146,7 @@ async def test_handle_retry_with_backoff(worker):
     tenant_id = uuid.uuid4()
     task_data = {"run_id": str(run_id), "tenant_id": str(tenant_id)}
 
-    with patch("vortex.engine.worker.TaskScheduler") as mock_sched, \
-         patch("vortex.engine.worker.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("vortex.engine.worker.TaskScheduler") as mock_sched, patch("vortex.engine.worker.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         mock_sched.enqueue_workflow = AsyncMock()
         await worker.handle_retry_or_dlq(task_data, error="timeout", attempt=1, max_attempts=3)
         mock_sleep.assert_called_once_with(1.0)
@@ -160,8 +169,7 @@ async def test_handle_dlq_after_max_attempts(worker):
 @pytest.mark.asyncio
 async def test_run_loop_with_max_iterations(worker):
     """run_loop should exit after max_iterations."""
-    with patch("vortex.engine.worker.CheckpointStore") as mock_cp, \
-         patch("vortex.engine.worker.asyncio.sleep", new_callable=AsyncMock):
+    with patch("vortex.engine.worker.CheckpointStore") as mock_cp, patch("vortex.engine.worker.asyncio.sleep", new_callable=AsyncMock):
         mock_cp.recover_orphaned_workflows = AsyncMock(return_value=[])
         await worker.run_loop(poll_interval_seconds=0.01, max_iterations=2)
         assert mock_cp.recover_orphaned_workflows.call_count == 2
@@ -170,8 +178,7 @@ async def test_run_loop_with_max_iterations(worker):
 @pytest.mark.asyncio
 async def test_run_loop_orphan_recovery_error(worker):
     """run_loop should handle errors during orphan recovery gracefully."""
-    with patch("vortex.engine.worker.CheckpointStore") as mock_cp, \
-         patch("vortex.engine.worker.asyncio.sleep", new_callable=AsyncMock):
+    with patch("vortex.engine.worker.CheckpointStore") as mock_cp, patch("vortex.engine.worker.asyncio.sleep", new_callable=AsyncMock):
         mock_cp.recover_orphaned_workflows = AsyncMock(side_effect=RuntimeError("DB error"))
         await worker.run_loop(poll_interval_seconds=0.01, max_iterations=1)
         # Should complete without raising

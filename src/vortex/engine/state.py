@@ -12,13 +12,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
-from typing import Any, Literal
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, Field
 
 
-class WorkflowStatus(str, Enum):
+class WorkflowStatus(StrEnum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
@@ -27,7 +27,7 @@ class WorkflowStatus(str, Enum):
     AWAITING_APPROVAL = "AWAITING_APPROVAL"
 
 
-class NodeStatus(str, Enum):
+class NodeStatus(StrEnum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
@@ -45,9 +45,7 @@ class NodeDefinition(BaseModel):
     id: str = Field(..., description="Unique node ID within the DAG")
     type: NodeType = Field(..., description="Type of node")
     name: str | None = Field(None, description="Human-readable node name")
-    dependencies: list[str] = Field(
-        default_factory=list, description="IDs of upstream nodes that must complete before this node runs"
-    )
+    dependencies: list[str] = Field(default_factory=list, description="IDs of upstream nodes that must complete before this node runs")
 
     # Node-specific configuration parameters
     config: dict[str, Any] = Field(default_factory=dict)
@@ -85,17 +83,13 @@ class WorkflowState(BaseModel):
 
     # Node execution state
     current_nodes: list[str] = Field(default_factory=list, description="Currently executing node IDs")
-    completed_nodes: dict[str, Any] = Field(
-        default_factory=dict, description="Map of node_id -> output result dict"
-    )
+    completed_nodes: dict[str, Any] = Field(default_factory=dict, description="Map of node_id -> output result dict")
     failed_nodes: dict[str, str] = Field(default_factory=dict, description="Map of node_id -> error message")
     skipped_nodes: list[str] = Field(default_factory=list, description="List of skipped node IDs")
     retry_counts: dict[str, int] = Field(default_factory=dict, description="Map of node_id -> retry count")
 
     # Workflow variable store
-    variables: dict[str, Any] = Field(
-        default_factory=dict, description="Accumulated global state variables passed between nodes"
-    )
+    variables: dict[str, Any] = Field(default_factory=dict, description="Accumulated global state variables passed between nodes")
 
     # Metrics accumulation
     total_tokens: int = 0

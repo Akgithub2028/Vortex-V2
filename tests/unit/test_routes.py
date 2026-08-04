@@ -3,6 +3,7 @@ Unit tests for API routes.
 """
 
 import uuid
+
 import pytest
 
 from vortex.engine.checkpoint import CheckpointStore
@@ -31,9 +32,7 @@ async def test_run_workflow_endpoint(async_client, monkeypatch):
         "dag": {
             "name": "test-workflow",
             "version": 1,
-            "nodes": [
-                {"id": "step1", "type": "llm", "config": {"prompt": "Hello {topic}"}}
-            ],
+            "nodes": [{"id": "step1", "type": "llm", "config": {"prompt": "Hello {topic}"}}],
         },
         "input": {"topic": "AI Architecture"},
     }
@@ -174,11 +173,14 @@ async def test_create_prompt_template_auto_version(async_client):
 async def test_list_prompt_templates(async_client):
     """GET /v1/prompts should list created prompts."""
     # Create a prompt first
-    await async_client.post("/v1/prompts", json={
-        "name": "list_test_prompt",
-        "template": "Test {x}",
-        "variables": ["x"],
-    })
+    await async_client.post(
+        "/v1/prompts",
+        json={
+            "name": "list_test_prompt",
+            "template": "Test {x}",
+            "variables": ["x"],
+        },
+    )
 
     response = await async_client.get("/v1/prompts")
     assert response.status_code == 200
@@ -190,11 +192,14 @@ async def test_list_prompt_templates(async_client):
 @pytest.mark.asyncio
 async def test_get_prompt_template_by_name(async_client):
     """GET /v1/prompts/{name} should return the latest version."""
-    await async_client.post("/v1/prompts", json={
-        "name": "get_test",
-        "template": "Template {y}",
-        "variables": ["y"],
-    })
+    await async_client.post(
+        "/v1/prompts",
+        json={
+            "name": "get_test",
+            "template": "Template {y}",
+            "variables": ["y"],
+        },
+    )
 
     response = await async_client.get("/v1/prompts/get_test")
     assert response.status_code == 200
@@ -211,16 +216,22 @@ async def test_get_prompt_template_not_found(async_client):
 @pytest.mark.asyncio
 async def test_get_prompt_template_specific_version(async_client):
     """GET /v1/prompts/{name}?version=1 should return specific version."""
-    await async_client.post("/v1/prompts", json={
-        "name": "ver_test",
-        "template": "V1 {z}",
-        "variables": ["z"],
-    })
-    await async_client.post("/v1/prompts", json={
-        "name": "ver_test",
-        "template": "V2 {z}",
-        "variables": ["z"],
-    })
+    await async_client.post(
+        "/v1/prompts",
+        json={
+            "name": "ver_test",
+            "template": "V1 {z}",
+            "variables": ["z"],
+        },
+    )
+    await async_client.post(
+        "/v1/prompts",
+        json={
+            "name": "ver_test",
+            "template": "V2 {z}",
+            "variables": ["z"],
+        },
+    )
 
     response = await async_client.get("/v1/prompts/ver_test?version=1")
     assert response.status_code == 200
@@ -242,6 +253,7 @@ async def test_readyz_healthy(async_client):
 @pytest.mark.asyncio
 async def test_run_workflow_with_idempotency_key(async_client, monkeypatch):
     """Idempotency key should return existing run on second call."""
+
     async def mock_save(*args, **kwargs):
         pass
 
@@ -251,9 +263,7 @@ async def test_run_workflow_with_idempotency_key(async_client, monkeypatch):
         "dag": {
             "name": "idemp-test",
             "version": 1,
-            "nodes": [
-                {"id": "s1", "type": "llm", "config": {"prompt": "Hello"}}
-            ],
+            "nodes": [{"id": "s1", "type": "llm", "config": {"prompt": "Hello"}}],
         },
         "input": {"topic": "test"},
         "idempotency_key": "unique-key-123",

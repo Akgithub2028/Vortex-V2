@@ -9,9 +9,7 @@ and append-only event sourcing state projections.
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from collections.abc import Callable
-from typing import Any, Dict, List, Optional
-import uuid
+from typing import TYPE_CHECKING, Any
 
 from vortex.engine.checkpoint import CheckpointStore
 from vortex.engine.nodes import create_node
@@ -23,16 +21,19 @@ from vortex.engine.state import (
 )
 from vortex.observability.logger import get_logger
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 logger = get_logger(__name__)
 
 
 def yield_task(
     node_id: str,
     type: str,
-    config: Optional[Dict[str, Any]] = None,
-    dependencies: Optional[List[str]] = None,
-    name: Optional[str] = None,
-) -> Dict[str, Any]:
+    config: dict[str, Any] | None = None,
+    dependencies: list[str] | None = None,
+    name: str | None = None,
+) -> dict[str, Any]:
     """
     Utility function for nodes/sub-workflows to yield dynamic tasks during runtime execution.
 
@@ -147,20 +148,15 @@ class DynamicGraphExecutor:
 
                 if not ready_nodes:
                     # Check if all registered nodes are resolved
-                    total_resolved = (
-                        len(self.state.completed_nodes)
-                        + len(self.state.failed_nodes)
-                        + len(self.state.skipped_nodes)
-                    )
+                    total_resolved = len(self.state.completed_nodes) + len(self.state.failed_nodes) + len(self.state.skipped_nodes)
                     if total_resolved >= len(self.nodes_map):
                         break
 
                     # Unresolvable nodes due to broken dependencies
                     unresolved = [
-                        n_id for n_id in self.nodes_map
-                        if n_id not in self.state.completed_nodes
-                        and n_id not in self.state.failed_nodes
-                        and n_id not in self.state.skipped_nodes
+                        n_id
+                        for n_id in self.nodes_map
+                        if n_id not in self.state.completed_nodes and n_id not in self.state.failed_nodes and n_id not in self.state.skipped_nodes
                     ]
                     for n_id in unresolved:
                         self.state.skipped_nodes.append(n_id)
@@ -190,10 +186,7 @@ class DynamicGraphExecutor:
                             yielded = output.get("_yielded_nodes")
                             if isinstance(yielded, list):
                                 for y_item in yielded:
-                                    if isinstance(y_item, dict):
-                                        y_node = NodeDefinition.model_validate(y_item)
-                                    else:
-                                        y_node = y_item
+                                    y_node = NodeDefinition.model_validate(y_item) if isinstance(y_item, dict) else y_item
                                     self.nodes_map[y_node.id] = y_node
                                     await EventStore.append_event(
                                         tenant_id=self.state.tenant_id,

@@ -11,13 +11,16 @@ Handles:
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from redis.asyncio import Redis
 
 from vortex.config import get_settings
 from vortex.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 logger = get_logger(__name__)
 

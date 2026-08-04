@@ -8,9 +8,9 @@ import json
 from typing import ClassVar
 
 from vortex.config import get_settings
+from vortex.eval.scorers.base import BaseScorer, EvalScoreResult
 from vortex.gateway.providers import get_provider
 from vortex.gateway.providers.base import CompletionRequest
-from vortex.eval.scorers.base import BaseScorer, EvalScoreResult
 from vortex.observability.logger import get_logger
 from vortex.observability.metrics import EVAL_SCORES
 
@@ -18,7 +18,6 @@ logger = get_logger(__name__)
 
 
 class FaithfulnessScorer(BaseScorer):
-    
     SYSTEM_PROMPT: ClassVar[str] = (
         "You are an expert AI evaluator. Compare the 'Output' to the 'Reference Context'. "
         "Does the output contain any information that is NOT supported by the reference context? "
@@ -67,34 +66,35 @@ class FaithfulnessScorer(BaseScorer):
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": self.SYSTEM_PROMPT},
-                    {"role": "user", "content": f"<REFERENCE_CONTEXT>\n{reference_context}\n</REFERENCE_CONTEXT>\n<OUTPUT>\n{output}\n</OUTPUT>"}
+                    {"role": "user", "content": f"<REFERENCE_CONTEXT>\n{reference_context}\n</REFERENCE_CONTEXT>\n<OUTPUT>\n{output}\n</OUTPUT>"},
                 ],
                 temperature=0.0,
             )
-            
+
             resp = await self.provider.complete(req)
             content = resp.content.replace("```json", "").replace("```", "").strip()
-            
+
             import re
-            json_match = re.search(r'(\{.*\})', content, re.DOTALL)
+
+            json_match = re.search(r"(\{.*\})", content, re.DOTALL)
             if json_match:
                 content = json_match.group(1)
-                
+
             try:
                 result = json.loads(content)
             except Exception as parse_e:
                 logger.error("JSON parse error", content=content, error=str(parse_e))
                 result = {}
-            
+
             is_faithful = result.get("is_faithful", False)
             confidence = result.get("confidence", 0.0)
             reason = result.get("reason", "No reason provided")
-            
+
             calc_score = confidence if is_faithful else (1.0 - confidence)
             passed = calc_score >= self.threshold
-            
+
             EVAL_SCORES.labels(scorer_name=self.scorer_name).observe(calc_score)
-            
+
             return EvalScoreResult(
                 scorer_name=self.scorer_name,
                 score=calc_score,
@@ -102,7 +102,7 @@ class FaithfulnessScorer(BaseScorer):
                 threshold=self.threshold,
                 reasoning=reason,
             )
-            
+
         except Exception as e:
             logger.error("FaithfulnessScorer failed", error=str(e))
             return EvalScoreResult(
@@ -110,5 +110,5 @@ class FaithfulnessScorer(BaseScorer):
                 score=0.0,
                 passed=False,
                 threshold=self.threshold,
-                reasoning=f"LLM API Evaluation Failed: {str(e)}",
+                reasoning=f"LLM API Evaluation Failed: {e!s}",
             )

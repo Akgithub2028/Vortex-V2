@@ -8,16 +8,18 @@ and records results to PostgreSQL `eval_results` table.
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
 from vortex.eval.scorers import get_scorer
-from vortex.eval.scorers.base import EvalScoreResult
 from vortex.observability.logger import get_logger
 from vortex.observability.metrics import EVAL_GATE_RESULTS_TOTAL
 from vortex.storage.database import get_session
 from vortex.storage.models import EvalResult
+
+if TYPE_CHECKING:
+    from vortex.eval.scorers.base import EvalScoreResult
 
 logger = get_logger(__name__)
 
@@ -84,12 +86,14 @@ class EvaluationRunner:
                 result="pass" if res.passed else "block",
             ).inc()
 
-            item_results.append({
-                "item_id": item.id,
-                "score": res.score,
-                "passed": res.passed,
-                "reasoning": res.reasoning,
-            })
+            item_results.append(
+                {
+                    "item_id": item.id,
+                    "score": res.score,
+                    "passed": res.passed,
+                    "reasoning": res.reasoning,
+                }
+            )
 
         mean_score = sum(scores) / max(1, total_items)
         pass_rate = passed_count / max(1, total_items)

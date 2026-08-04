@@ -7,16 +7,18 @@ and enforces action policies (warn | block).
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from vortex.api.errors import GuardrailBlockError
 from vortex.config import get_settings
-from vortex.guardrails.validators.base import BaseValidator, GuardrailResult
 from vortex.guardrails.validators.content_policy import ContentPolicyValidator
 from vortex.guardrails.validators.pii import PIIValidator
 from vortex.guardrails.validators.prompt_injection import PromptInjectionValidator
 from vortex.observability.logger import get_logger
 from vortex.observability.metrics import GUARDRAIL_CHECKS_TOTAL
+
+if TYPE_CHECKING:
+    from vortex.guardrails.validators.base import BaseValidator, GuardrailResult
 
 logger = get_logger(__name__)
 

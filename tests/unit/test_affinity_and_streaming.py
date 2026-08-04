@@ -3,8 +3,9 @@ Unit tests for Vortex Phase 9: KV-Cache Affinity Router and Inter-Node Real-time
 """
 
 import asyncio
-import pytest
 import uuid
+
+import pytest
 
 from vortex.engine.streaming import StreamChannel
 from vortex.gateway.affinity import KVCacheAffinityRouter, compute_prefix_hash

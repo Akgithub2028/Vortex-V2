@@ -4,14 +4,17 @@ FastAPI dependency injection utilities.
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
-
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import TYPE_CHECKING
 
 from vortex.api.middleware.auth import AuthContext, get_current_auth, require_role
 from vortex.storage.database import get_session
 from vortex.storage.redis import get_redis
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from redis.asyncio import Redis
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 __all__ = [
     "AuthContext",

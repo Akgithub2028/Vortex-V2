@@ -2,11 +2,12 @@
 Unit tests for Vortex EventStore component.
 """
 
-import pytest
 import uuid
+
+import pytest
+
 from vortex.engine.event_store import EventStore
 from vortex.storage.database import init_db
-from vortex.storage.models import WorkflowEvent
 
 
 @pytest.mark.asyncio

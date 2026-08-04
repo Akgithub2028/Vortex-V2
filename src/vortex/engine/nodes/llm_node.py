@@ -9,11 +9,13 @@ Routes prompt template through the Model Gateway with support for:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from vortex.engine.nodes.base import BaseNode
-from vortex.engine.state import WorkflowState
 from vortex.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from vortex.engine.state import WorkflowState
 
 logger = get_logger(__name__)
 
@@ -22,8 +24,8 @@ class LLMNode(BaseNode):
     async def execute(self, state: WorkflowState) -> dict[str, Any]:
         prompt_template: str = self.config.get("prompt", "")
         model: str = self.config.get("model", "openai/gpt-4o-mini")
-        system_prompt: str = self.config.get("system_prompt", "You are a helpful AI assistant.")
-        temperature: float = float(self.config.get("temperature", 0.7))
+        self.config.get("system_prompt", "You are a helpful AI assistant.")
+        float(self.config.get("temperature", 0.7))
 
         # Format prompt with variables from workflow state
         try:

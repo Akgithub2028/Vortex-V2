@@ -4,11 +4,12 @@ Model Gateway Router — provider selection, fallback routing chain, guardrail i
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from vortex.config import get_settings
 from vortex.gateway.cache import GatewayCache
 from vortex.gateway.circuit_breaker import CircuitBreaker
 from vortex.gateway.providers import get_provider
-from vortex.gateway.providers.base import CompletionRequest, CompletionResponse
 from vortex.guardrails import GuardrailsEngine
 from vortex.observability.logger import get_logger
 from vortex.observability.metrics import (
@@ -16,6 +17,9 @@ from vortex.observability.metrics import (
     LLM_CACHE_MISSES_TOTAL,
     LLM_REQUESTS_TOTAL,
 )
+
+if TYPE_CHECKING:
+    from vortex.gateway.providers.base import CompletionRequest, CompletionResponse
 
 logger = get_logger(__name__)
 

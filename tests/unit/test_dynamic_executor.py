@@ -2,9 +2,10 @@
 Unit tests for Vortex DynamicGraphExecutor and yield_task functionality.
 """
 
-from unittest.mock import AsyncMock, patch
-import pytest
 import uuid
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from vortex.engine.event_store import EventStore
 from vortex.engine.executor import DynamicGraphExecutor, yield_task
@@ -68,7 +69,9 @@ async def test_dynamic_executor_hitl_pause():
         name="hitl-pipeline",
         nodes=[
             NodeDefinition(id="approve_step", type="human", config={"instructions": "Approve action"}),
-            NodeDefinition(id="final_step", type="tool", config={"tool_name": "python_eval", "tool_args": {"expression": "10*10"}}, dependencies=["approve_step"]),
+            NodeDefinition(
+                id="final_step", type="tool", config={"tool_name": "python_eval", "tool_args": {"expression": "10*10"}}, dependencies=["approve_step"]
+            ),
         ],
     )
 
@@ -100,10 +103,14 @@ async def test_executor_node_failure_marks_workflow_failed():
     dag = DAGDefinition(
         name="fail-pipeline",
         nodes=[
-            NodeDefinition(id="bad_node", type="tool", config={
-                "tool_name": "python_eval",
-                "tool_args": {"expression": "1/0"},
-            }),
+            NodeDefinition(
+                id="bad_node",
+                type="tool",
+                config={
+                    "tool_name": "python_eval",
+                    "tool_args": {"expression": "1/0"},
+                },
+            ),
         ],
     )
 

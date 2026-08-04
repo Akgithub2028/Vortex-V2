@@ -8,21 +8,20 @@ Prevents cascading failures when an upstream model provider experiences an outag
 from __future__ import annotations
 
 import time
-from enum import Enum
+from enum import StrEnum
 
 from vortex.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class CircuitState(str, Enum):
+class CircuitState(StrEnum):
     CLOSED = "CLOSED"
     OPEN = "OPEN"
     HALF_OPEN = "HALF_OPEN"
 
 
 class CircuitBreaker:
-
     def __init__(
         self,
         threshold: int = 5,

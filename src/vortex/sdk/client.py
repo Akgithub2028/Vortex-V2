@@ -4,8 +4,8 @@ Vortex Client — Programmatic Async SDK for interacting with Vortex AI Executio
 
 from __future__ import annotations
 
-from typing import Any, AsyncGenerator, Dict, Optional, Union
 import uuid
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -26,7 +26,7 @@ class VortexClient:
     def __init__(
         self,
         base_url: str = "http://localhost:8000",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         timeout: float = 30.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -41,13 +41,13 @@ class VortexClient:
 
     async def run_workflow(
         self,
-        workflow: Union[Workflow, Dict[str, Any]],
-        input: Optional[Dict[str, Any]] = None,
-        idempotency_key: Optional[str] = None,
+        workflow: Workflow | dict[str, Any],
+        input: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
     ) -> SDKWorkflowRunResponse:
         """Submit a workflow graph for execution."""
         dag = workflow.to_dict() if isinstance(workflow, Workflow) else workflow
-        payload: Dict[str, Any] = {"dag": dag, "input": input or {}}
+        payload: dict[str, Any] = {"dag": dag, "input": input or {}}
         if idempotency_key:
             payload["idempotency_key"] = idempotency_key
 
@@ -56,14 +56,14 @@ class VortexClient:
             resp.raise_for_status()
             return SDKWorkflowRunResponse.model_validate(resp.json())
 
-    async def get_workflow_run(self, run_id: Union[uuid.UUID, str]) -> SDKWorkflowRunResponse:
+    async def get_workflow_run(self, run_id: uuid.UUID | str) -> SDKWorkflowRunResponse:
         """Fetch status and outputs for an existing workflow run."""
         async with self._get_client() as client:
             resp = await client.get(f"/v1/workflows/{run_id}")
             resp.raise_for_status()
             return SDKWorkflowRunResponse.model_validate(resp.json())
 
-    async def cancel_workflow_run(self, run_id: Union[uuid.UUID, str]) -> SDKWorkflowRunResponse:
+    async def cancel_workflow_run(self, run_id: uuid.UUID | str) -> SDKWorkflowRunResponse:
         """Cancel an in-flight workflow run."""
         async with self._get_client() as client:
             resp = await client.post(f"/v1/workflows/{run_id}/cancel")
@@ -72,10 +72,10 @@ class VortexClient:
 
     async def approve_human_node(
         self,
-        run_id: Union[uuid.UUID, str],
+        run_id: uuid.UUID | str,
         node_id: str,
         approved: bool = True,
-        feedback: Optional[str] = None,
+        feedback: str | None = None,
     ) -> SDKWorkflowRunResponse:
         """Approve or reject a paused Human-in-the-Loop node."""
         payload = {"approved": approved, "feedback": feedback}
@@ -88,7 +88,7 @@ class VortexClient:
         self,
         name: str,
         template: str,
-        variables: Optional[list[str]] = None,
+        variables: list[str] | None = None,
     ) -> SDKPromptTemplateResponse:
         """Register a new versioned prompt template."""
         payload = {"name": name, "template": template, "variables": variables or []}

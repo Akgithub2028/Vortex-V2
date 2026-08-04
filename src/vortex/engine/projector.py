@@ -7,17 +7,19 @@ Reconstructs in-memory WorkflowState and materializes relational read models
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Optional
-import uuid
+from typing import TYPE_CHECKING
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from vortex.engine.state import WorkflowState, WorkflowStatus
 from vortex.observability.logger import get_logger
 from vortex.storage.models import NodeRun, WorkflowEvent, WorkflowRun
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 

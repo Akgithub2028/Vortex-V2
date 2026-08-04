@@ -3,13 +3,13 @@ Deterministic Fault Injection and Chaos Simulation Test Suite for Vortex Engine.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
-import pytest
 import uuid
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from vortex.engine.checkpoint import CheckpointStore
 from vortex.engine.event_store import EventStore
-from vortex.engine.executor import DynamicGraphExecutor
 from vortex.engine.state import DAGDefinition, NodeDefinition, WorkflowState, WorkflowStatus
 from vortex.engine.worker import WorkflowWorker
 from vortex.storage.database import init_db

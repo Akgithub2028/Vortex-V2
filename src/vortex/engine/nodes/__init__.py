@@ -4,6 +4,8 @@ Node factory mapping node definitions to BaseNode instances.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from vortex.engine.nodes.base import BaseNode
 from vortex.engine.nodes.branch_node import BranchNode
 from vortex.engine.nodes.eval_node import EvalNode
@@ -11,7 +13,9 @@ from vortex.engine.nodes.human_node import HumanNode
 from vortex.engine.nodes.llm_node import LLMNode
 from vortex.engine.nodes.parallel_node import ParallelNode
 from vortex.engine.nodes.tool_node import ToolNode
-from vortex.engine.state import NodeDefinition
+
+if TYPE_CHECKING:
+    from vortex.engine.state import NodeDefinition
 
 
 def create_node(definition: NodeDefinition) -> BaseNode:

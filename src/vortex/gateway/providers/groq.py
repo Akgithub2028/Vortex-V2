@@ -6,8 +6,9 @@ Uses the OpenAI SDK since Groq provides an OpenAI-compatible API.
 from __future__ import annotations
 
 import asyncio
-from ulid import ULID
+
 import openai
+from ulid import ULID
 
 from vortex.gateway.providers.base import BaseProvider, CompletionRequest, CompletionResponse
 from vortex.observability.logger import get_logger
@@ -42,9 +43,9 @@ class GroqProvider(BaseProvider):
                     stream=request.stream,
                 )
                 break
-            except openai.RateLimitError as e:
+            except openai.RateLimitError:
                 if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2  # Exponential backoff
+                    wait_time = (2**attempt) * 2  # Exponential backoff
                     logger.warning("Groq rate limit hit, retrying", attempt=attempt, delay=wait_time)
                     await asyncio.sleep(wait_time)
                 else:

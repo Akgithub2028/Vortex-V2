@@ -5,11 +5,13 @@ Tool Node execution logic — executes tool/function calls in a sandboxed execut
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from vortex.engine.nodes.base import BaseNode
-from vortex.engine.state import WorkflowState
 from vortex.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from vortex.engine.state import WorkflowState
 
 logger = get_logger(__name__)
 

@@ -60,29 +60,21 @@ Create a file `first_workflow.py`:
 import asyncio
 from vortex.sdk import VortexClient, Workflow
 
+
 async def main():
     # 1. Define a 2-step LLM DAG
     wf = Workflow(name="summary-pipeline")
-    
+
     # Node 1: Draft
-    wf.add_llm_node(
-        "draft", 
-        prompt="Outline 3 key benefits of {topic}.", 
-        model="openai/gpt-4o-mini"
-    )
-    
+    wf.add_llm_node("draft", prompt="Outline 3 key benefits of {topic}.", model="openai/gpt-4o-mini")
+
     # Node 2: Polish (depends on 'draft')
-    wf.add_llm_node(
-        "polish", 
-        prompt="Expand into final summary: {draft}", 
-        model="openai/gpt-4o-mini", 
-        dependencies=["draft"]
-    )
+    wf.add_llm_node("polish", prompt="Expand into final summary: {draft}", model="openai/gpt-4o-mini", dependencies=["draft"])
 
     # 2. Execute via Vortex Client
     client = VortexClient(base_url="http://localhost:8000")
     print(f"Submitting workflow for execution...")
-    
+
     run = await client.run_workflow(wf, input={"topic": "Durable Workflow Orchestration"})
 
     print("✅ Execution Complete!")
@@ -91,6 +83,7 @@ async def main():
     print(f"Tokens Used: {run.total_tokens}")
     print(f"Cost (USD): ${run.total_cost_usd:.4f}")
     print(f"Final Output: \n{run.output['polish']}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

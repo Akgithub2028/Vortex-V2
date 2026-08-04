@@ -5,11 +5,10 @@ Pytest configuration and global fixtures for Vortex test suite.
 from __future__ import annotations
 
 import os
-from typing import AsyncGenerator
 import uuid
 
-from httpx import ASGITransport, AsyncClient
 import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 # Force testing environment before importing settings
@@ -17,10 +16,15 @@ os.environ["VORTEX_ENVIRONMENT"] = "testing"
 os.environ["VORTEX_DATABASE_URL"] = "sqlite+aiosqlite:///file:memdb1?mode=memory&cache=shared&uri=true"
 os.environ["VORTEX_REDIS_URL"] = "redis://localhost:6379/1"
 
+from typing import TYPE_CHECKING
+
 from vortex.api.main import create_app
 from vortex.config import get_settings
 from vortex.storage.database import get_engine, get_session
 from vortex.storage.models import Base, Tenant
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 
 @pytest.fixture(autouse=True)

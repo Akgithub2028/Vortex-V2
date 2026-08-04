@@ -6,8 +6,8 @@ Assembles middleware, routes, exception handlers, and lifespan lifecycle managem
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +21,9 @@ from vortex.observability import setup_logging, setup_metrics, setup_tracing
 from vortex.observability.logger import get_logger
 from vortex.storage.database import close_db, init_db
 from vortex.storage.redis import close_redis, init_redis
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 logger = get_logger(__name__)
 
@@ -99,7 +102,7 @@ def create_app() -> FastAPI:
     return app
 
 
-def cli() -> None:
+def cli() -> None:  # pragma: no cover
     """CLI entrypoint (`vortex`). Launches Uvicorn dev server."""
     import uvicorn
 
@@ -114,5 +117,5 @@ def cli() -> None:
     )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     cli()

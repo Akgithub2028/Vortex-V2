@@ -8,8 +8,8 @@ GET /v1/prompts/{name} — Get latest or specific version of prompt template
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
 import uuid
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
@@ -17,10 +17,14 @@ from sqlalchemy import select
 
 from vortex.api.deps import get_current_auth, require_role
 from vortex.api.errors import NotFoundError
-from vortex.api.middleware.auth import AuthContext
 from vortex.observability.logger import get_logger
 from vortex.storage.database import get_session
 from vortex.storage.models import PromptTemplate
+
+if TYPE_CHECKING:
+    pass
+
+    from vortex.api.middleware.auth import AuthContext
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/v1/prompts", tags=["Prompt Registry"])
@@ -29,7 +33,7 @@ router = APIRouter(prefix="/v1/prompts", tags=["Prompt Registry"])
 class CreatePromptRequest(BaseModel):
     name: str = Field(..., example="research_summary_v1")
     template: str = Field(..., example="Summarize the following topic: {topic}")
-    variables: List[str] = Field(default_factory=list, example=["topic"])
+    variables: list[str] = Field(default_factory=list, example=["topic"])
 
 
 class PromptTemplateResponse(BaseModel):
@@ -37,7 +41,7 @@ class PromptTemplateResponse(BaseModel):
     name: str
     version: int
     template: str
-    variables: List[str]
+    variables: list[str]
     created_at: str
 
 
@@ -53,10 +57,14 @@ async def create_prompt_template(
 ) -> PromptTemplateResponse:
     async with get_session() as session:
         # Check current latest version for this template name
-        stmt = select(PromptTemplate).where(
-            PromptTemplate.tenant_id == auth.tenant_id,
-            PromptTemplate.name == body.name,
-        ).order_by(PromptTemplate.version.desc())
+        stmt = (
+            select(PromptTemplate)
+            .where(
+                PromptTemplate.tenant_id == auth.tenant_id,
+                PromptTemplate.name == body.name,
+            )
+            .order_by(PromptTemplate.version.desc())
+        )
         res = await session.execute(stmt)
         existing = res.scalars().first()
 
@@ -83,12 +91,12 @@ async def create_prompt_template(
 
 @router.get(
     "",
-    response_model=List[PromptTemplateResponse],
+    response_model=list[PromptTemplateResponse],
     summary="List all registered prompt templates for tenant",
 )
 async def list_prompt_templates(
     auth: AuthContext = Depends(get_current_auth),
-) -> List[PromptTemplateResponse]:
+) -> list[PromptTemplateResponse]:
     async with get_session() as session:
         stmt = select(PromptTemplate).where(PromptTemplate.tenant_id == auth.tenant_id).order_by(PromptTemplate.name)
         res = await session.execute(stmt)
@@ -114,7 +122,7 @@ async def list_prompt_templates(
 )
 async def get_prompt_template(
     name: str,
-    version: Optional[int] = None,
+    version: int | None = None,
     auth: AuthContext = Depends(get_current_auth),
 ) -> PromptTemplateResponse:
     async with get_session() as session:
@@ -122,10 +130,7 @@ async def get_prompt_template(
             PromptTemplate.tenant_id == auth.tenant_id,
             PromptTemplate.name == name,
         )
-        if version is not None:
-            stmt = stmt.where(PromptTemplate.version == version)
-        else:
-            stmt = stmt.order_by(PromptTemplate.version.desc())
+        stmt = stmt.where(PromptTemplate.version == version) if version is not None else stmt.order_by(PromptTemplate.version.desc())
 
         res = await session.execute(stmt)
         prompt = res.scalars().first()

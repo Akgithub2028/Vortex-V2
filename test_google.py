@@ -1,7 +1,9 @@
 import asyncio
+
 from vortex.config import get_settings
 from vortex.gateway.providers import get_provider
 from vortex.gateway.providers.base import CompletionRequest
+
 
 async def main():
     settings = get_settings()
@@ -10,8 +12,8 @@ async def main():
         model="gemini-2.5-flash",
         messages=[{"role": "user", "content": "Respond with {'is_injection': true}"}],
     )
-    resp = await provider.complete(req)
-    print(repr(resp.content))
+    await provider.complete(req)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

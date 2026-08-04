@@ -69,6 +69,7 @@ async def test_redis_helpers(monkeypatch):
 @pytest.mark.asyncio
 async def test_init_redis_success(monkeypatch):
     """init_redis should verify connection with a ping."""
+
     class MockRedis:
         async def ping(self):
             return True
@@ -91,6 +92,7 @@ async def test_close_redis_already_none(monkeypatch):
 @pytest.mark.asyncio
 async def test_lock_release_failure(monkeypatch):
     """Lock release failure should be handled gracefully."""
+
     class MockLock:
         async def acquire(self):
             return True
@@ -112,6 +114,7 @@ async def test_lock_release_failure(monkeypatch):
 @pytest.mark.asyncio
 async def test_lock_not_acquired(monkeypatch):
     """When lock is not acquired, release should not be called."""
+
     class MockLock:
         async def acquire(self):
             return False
@@ -137,4 +140,3 @@ async def test_database_close_lifecycle(async_client):
     engine = get_engine()
     assert engine is not None
     await close_db()
-

@@ -13,13 +13,13 @@ from vortex.eval.scorers.toxicity import ToxicityScorer
 def get_scorer(scorer_name: str, threshold: float = 0.7) -> BaseScorer:
     name = scorer_name.lower()
     if name == "faithfulness":
-        return FaithfulnessScorer(threshold)
+        return FaithfulnessScorer(threshold=threshold)
     elif name == "relevance":
         return RelevanceScorer(threshold)
     elif name == "toxicity":
         return ToxicityScorer(threshold)
     else:
-        return FaithfulnessScorer(threshold)
+        return FaithfulnessScorer(threshold=threshold)
 
 
 __all__ = [

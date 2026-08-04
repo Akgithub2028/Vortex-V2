@@ -2,7 +2,6 @@
 Unit tests for Vortex Phase 10: Multi-Tenant Payload Encryption and Security Isolation.
 """
 
-import pytest
 import uuid
 
 from vortex.engine.security import PayloadEncryptor
@@ -65,4 +64,3 @@ def test_decrypt_non_dict_returns_input():
     """decrypt_payload should handle non-dict input gracefully."""
     result = PayloadEncryptor.decrypt_payload(uuid.uuid4(), {"no_encrypted_flag": True})
     assert result == {"no_encrypted_flag": True}
-

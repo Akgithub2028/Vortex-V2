@@ -3,9 +3,9 @@ End-to-end integration tests for Vortex workflow engine, idempotency, cancellati
 """
 
 import uuid
+
 import pytest
 
-from vortex.engine.state import WorkflowStatus
 from vortex.storage.database import get_session
 from vortex.storage.models import WorkflowRun
 
@@ -24,7 +24,12 @@ async def test_workflow_e2e_execution(async_client, monkeypatch):
             "version": 1,
             "nodes": [
                 {"id": "llm1", "type": "llm", "config": {"prompt": "Analyze {query}"}},
-                {"id": "eval1", "type": "eval", "dependencies": ["llm1"], "config": {"scorer": "faithfulness", "threshold": 0.5, "target_node": "llm1"}},
+                {
+                    "id": "eval1",
+                    "type": "eval",
+                    "dependencies": ["llm1"],
+                    "config": {"scorer": "faithfulness", "threshold": 0.5, "target_node": "llm1"},
+                },
             ],
         },
         "input": {"query": "Distributed Consensus"},

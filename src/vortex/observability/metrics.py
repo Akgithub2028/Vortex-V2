@@ -92,7 +92,7 @@ NODE_RETRIES_TOTAL = Counter(
 GUARDRAIL_CHECKS_TOTAL = Counter(
     "vortex_guardrail_checks_total",
     "Total guardrail checks executed",
-    ["guardrail_type", "result"],  # type: injection, pii, content_policy; result: pass, warn, block
+    ["guardrail_type", "result"],  # guardrail_type: injection, pii, content_policy; result: pass, warn, block
 )
 
 # ─── Evaluation Metrics ───────────────────────────────────────────────────────

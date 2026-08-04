@@ -39,21 +39,23 @@ async def test_setup_tracing_enabled():
     class MockContext:
         trace_id = 123456789
         span_id = 987654321
-        
+
     mock_span = MagicMock()
     mock_span.get_span_context.return_value = MockContext()
     mock_trace = MagicMock()
     mock_trace.get_current_span.return_value = mock_span
 
-    with patch("vortex.observability.tracer.get_settings", return_value=mock_settings), \
-         patch("opentelemetry.trace.get_current_span", return_value=mock_span), \
-         patch("opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter", return_value=mock_exporter), \
-         patch("opentelemetry.sdk.resources.Resource.create", return_value=mock_resource), \
-         patch("opentelemetry.sdk.trace.TracerProvider", return_value=mock_provider), \
-         patch("opentelemetry.sdk.trace.export.BatchSpanProcessor", return_value=mock_processor), \
-         patch("opentelemetry.instrumentation.fastapi.FastAPIInstrumentor"), \
-         patch("opentelemetry.instrumentation.httpx.HTTPXClientInstrumentor"), \
-         patch("opentelemetry.instrumentation.sqlalchemy.SQLAlchemyInstrumentor"):
+    with (
+        patch("vortex.observability.tracer.get_settings", return_value=mock_settings),
+        patch("opentelemetry.trace.get_current_span", return_value=mock_span),
+        patch("opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter", return_value=mock_exporter),
+        patch("opentelemetry.sdk.resources.Resource.create", return_value=mock_resource),
+        patch("opentelemetry.sdk.trace.TracerProvider", return_value=mock_provider),
+        patch("opentelemetry.sdk.trace.export.BatchSpanProcessor", return_value=mock_processor),
+        patch("opentelemetry.instrumentation.fastapi.FastAPIInstrumentor"),
+        patch("opentelemetry.instrumentation.httpx.HTTPXClientInstrumentor"),
+        patch("opentelemetry.instrumentation.sqlalchemy.SQLAlchemyInstrumentor"),
+    ):
         setup_tracing()
 
 

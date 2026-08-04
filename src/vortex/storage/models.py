@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     BIGINT,
@@ -28,17 +28,21 @@ from sqlalchemy import (
     JSON,
     TEXT,
     TIMESTAMP,
-    UUID,
     ForeignKey,
     Index,
     String,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.types import TypeDecorator
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import TypeDecorator
+
 from vortex.storage.database import Base
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class UUIDType(TypeDecorator):
@@ -70,49 +74,33 @@ class UUIDType(TypeDecorator):
 # DB-agnostic JSON column type (JSONB on PostgreSQL, JSON on SQLite)
 JSONType = JSON().with_variant(JSONB, "postgresql")
 
-from vortex.storage.database import Base
-
 
 class Tenant(Base):
     __tablename__ = "tenants"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     monthly_budget_usd: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 2), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     api_keys: Mapped[list[ApiKey]] = relationship("ApiKey", back_populates="tenant", cascade="all, delete-orphan")
-    workflows: Mapped[list[WorkflowDefinition]] = relationship(
-        "WorkflowDefinition", back_populates="tenant", cascade="all, delete-orphan"
-    )
-    runs: Mapped[list[WorkflowRun]] = relationship(
-        "WorkflowRun", back_populates="tenant", cascade="all, delete-orphan"
-    )
+    workflows: Mapped[list[WorkflowDefinition]] = relationship("WorkflowDefinition", back_populates="tenant", cascade="all, delete-orphan")
+    runs: Mapped[list[WorkflowRun]] = relationship("WorkflowRun", back_populates="tenant", cascade="all, delete-orphan")
 
 
 class ApiKey(Base):
     __tablename__ = "api_keys"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     key_prefix: Mapped[str] = mapped_column(String(16), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")  # owner | member | viewer
     rate_limit_rpm: Mapped[int] = mapped_column(INTEGER, default=60, nullable=False)
     is_active: Mapped[bool] = mapped_column(BOOLEAN, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
     last_used_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
 
     # Relationships
@@ -127,19 +115,13 @@ class ApiKey(Base):
 class WorkflowDefinition(Base):
     __tablename__ = "workflow_definitions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     version: Mapped[int] = mapped_column(INTEGER, nullable=False, default=1)
     dag: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
     config: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     tenant: Mapped[Tenant] = relationship("Tenant", back_populates="workflows")
@@ -154,15 +136,9 @@ class WorkflowDefinition(Base):
 class WorkflowRun(Base):
     __tablename__ = "workflow_runs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
-    definition_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUIDType, ForeignKey("workflow_definitions.id", ondelete="SET NULL"), nullable=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    definition_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("workflow_definitions.id", ondelete="SET NULL"), nullable=True)
     status: Mapped[str] = mapped_column(
         String(50), nullable=False, default="PENDING"
     )  # PENDING | RUNNING | COMPLETED | FAILED | CANCELLED | AWAITING_APPROVAL
@@ -176,19 +152,13 @@ class WorkflowRun(Base):
     started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     heartbeat_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     tenant: Mapped[Tenant] = relationship("Tenant", back_populates="runs")
     definition: Mapped[WorkflowDefinition | None] = relationship("WorkflowDefinition", back_populates="runs")
-    node_runs: Mapped[list[NodeRun]] = relationship(
-        "NodeRun", back_populates="workflow_run", cascade="all, delete-orphan"
-    )
-    events: Mapped[list[WorkflowEvent]] = relationship(
-        "WorkflowEvent", back_populates="workflow_run", cascade="all, delete-orphan"
-    )
+    node_runs: Mapped[list[NodeRun]] = relationship("NodeRun", back_populates="workflow_run", cascade="all, delete-orphan")
+    events: Mapped[list[WorkflowEvent]] = relationship("WorkflowEvent", back_populates="workflow_run", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_run_tenant_idempotency"),
@@ -200,16 +170,10 @@ class WorkflowRun(Base):
 class NodeRun(Base):
     __tablename__ = "node_runs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    run_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=False)
     node_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    node_type: Mapped[str] = mapped_column(
-        String(50), nullable=False
-    )  # llm | tool | branch | parallel | eval | human
+    node_type: Mapped[str] = mapped_column(String(50), nullable=False)  # llm | tool | branch | parallel | eval | human
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="PENDING")
     input: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
     output: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
@@ -226,9 +190,7 @@ class NodeRun(Base):
     guardrail_results: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     workflow_run: Mapped[WorkflowRun] = relationship("WorkflowRun", back_populates="node_runs")
@@ -242,21 +204,13 @@ class NodeRun(Base):
 class WorkflowEvent(Base):
     __tablename__ = "workflow_events"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
-    run_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=False)
     sequence_number: Mapped[int] = mapped_column(INTEGER, nullable=False)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
     event_data: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
-    timestamp: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    timestamp: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     workflow_run: Mapped[WorkflowRun] = relationship("WorkflowRun", back_populates="events")
@@ -271,62 +225,38 @@ class WorkflowEvent(Base):
 class EvalDataset(Base):
     __tablename__ = "eval_datasets"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     version: Mapped[int] = mapped_column(INTEGER, nullable=False, default=1)
     items: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
 
 class EvalResult(Base):
     __tablename__ = "eval_results"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
-    dataset_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUIDType, ForeignKey("eval_datasets.id", ondelete="SET NULL"), nullable=True
-    )
-    run_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUIDType, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    dataset_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("eval_datasets.id", ondelete="SET NULL"), nullable=True)
+    run_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True)
     scores: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
     item_results: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
 
 class PromptTemplate(Base):
     __tablename__ = "prompt_templates"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, primary_key=True, default=uuid.uuid4
-    )
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     version: Mapped[int] = mapped_column(INTEGER, nullable=False, default=1)
     template: Mapped[str] = mapped_column(TEXT, nullable=False)
     variables: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "name", "version", name="uq_prompt_tenant_name_version"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "name", "version", name="uq_prompt_tenant_name_version"),)
 
 
 class AuditLog(Base):
@@ -339,10 +269,6 @@ class AuditLog(Base):
     resource_type: Mapped[str] = mapped_column(String(100), nullable=False)
     resource_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, nullable=True)
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONType, nullable=False, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
 
-    __table_args__ = (
-        Index("idx_audit_tenant_created", "tenant_id", "created_at"),
-    )
+    __table_args__ = (Index("idx_audit_tenant_created", "tenant_id", "created_at"),)

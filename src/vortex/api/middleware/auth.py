@@ -92,9 +92,7 @@ async def get_current_auth(
     # Query DB for matching active key
     async with get_session() as session:
         stmt = (
-            select(ApiKey, Tenant)
-            .join(Tenant, ApiKey.tenant_id == Tenant.id)
-            .where(ApiKey.key_hash == key_hash, ApiKey.is_active == True)  # noqa: E712
+            select(ApiKey, Tenant).join(Tenant, ApiKey.tenant_id == Tenant.id).where(ApiKey.key_hash == key_hash, ApiKey.is_active == True)  # noqa: E712
         )
         result = await session.execute(stmt)
         row = result.first()
