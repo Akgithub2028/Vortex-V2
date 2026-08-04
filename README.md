@@ -134,7 +134,7 @@ All benchmark metrics are reproducibly measured using `benchmarks/run_benchmarks
 | **LLM Faithfulness Agreement** | **91.5%** Label Agreement | Semantic claim verification on `pminervini/HaluEval` vs ground-truth | LLM-as-a-Judge (`Groq` Llama 3.1) |
 | **Node Execution Overhead** | **0.048 ms** / node | Platform latency averaged over 10,000 execution graph loops | Target: < 50.0 ms |
 | **Test Suite Pass Rate** | **100%** (130/130 Passed) | `pytest` test suite executed in automated GitHub Actions CI/CD | Python 3.12 environment |
-| **Code Coverage** | **90.04%** Coverage | Line & branch coverage generated via `pytest-cov` | CI Enforcement threshold: 90% |
+| **Code Coverage** | **90.34%** Coverage | Line & branch coverage generated via `pytest-cov` | CI Enforcement threshold: 90% |
 
 > ℹ️ **Evaluation Methodology & Environment Setup**:
 > - **Hardware**: Benchmarked on Linux (Ubuntu, 8 vCPUs, 16GB RAM) with Redis 7 in-memory cache and PostgreSQL 16.
