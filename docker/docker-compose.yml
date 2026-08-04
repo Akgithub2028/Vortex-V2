@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vortex-postgres
+    environment:
+      POSTGRES_USER: ${VORTEX_POSTGRES_USER:-vortex}
+      POSTGRES_PASSWORD: ${VORTEX_POSTGRES_PASSWORD:-vortex}
+      POSTGRES_DB: ${VORTEX_POSTGRES_DB:-vortex}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vortex -d vortex"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: vortex-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: vortex-api
+    ports:
+      - "8000:8000"
+    environment:
+      VORTEX_ENVIRONMENT: development
+      VORTEX_DATABASE_URL: postgresql+asyncpg://vortex:vortex@postgres:5432/vortex
+      VORTEX_REDIS_URL: redis://redis:6379/0
+      VORTEX_OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VORTEX_ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
