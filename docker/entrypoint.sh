@@ -9,12 +9,8 @@ echo "Port: ${PORT:-8000}"
 echo "Running database migrations..."
 alembic upgrade head 2>/dev/null || echo "⚠ Migration skipped (no alembic config or DB not ready yet)"
 
-# Ensure port matches Railway's EXPOSE 8000 proxy target
+# Start the API server, binding to Railway's injected $PORT (default 8000)
 PORT="${PORT:-8000}"
-if [ "$PORT" = "8080" ]; then
-    PORT="8000"
-fi
-
 LOG_LEVEL="${VORTEX_LOG_LEVEL:-info}"
 LOG_LEVEL="${LOG_LEVEL,,}"
 
