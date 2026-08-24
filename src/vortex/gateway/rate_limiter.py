@@ -75,6 +75,13 @@ class ProviderRateLimiter:
                 return False
 
     @classmethod
-    def reset(cls) -> None:
-        """Reset local rate limit state (for unit testing)."""
+    async def reset(cls) -> None:
+        """Reset local and Redis rate limit state (for unit testing)."""
         cls._in_memory_buckets.clear()
+        try:
+            client = get_redis()
+            keys = await client.keys("vortex:ratelimit:provider:*")
+            if keys:
+                await client.delete(*keys)
+        except Exception:
+            pass

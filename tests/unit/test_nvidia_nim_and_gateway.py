@@ -37,7 +37,7 @@ async def test_nvidia_nim_provider_completion():
 
 @pytest.mark.asyncio
 async def test_provider_rate_limiter():
-    ProviderRateLimiter.reset()
+    await ProviderRateLimiter.reset()
 
     # Should allow up to max_rpm calls
     allowed_count = 0
@@ -51,12 +51,12 @@ async def test_provider_rate_limiter():
     blocked = not await ProviderRateLimiter.acquire("nvidia", max_rpm=40)
     assert blocked
 
-    ProviderRateLimiter.reset()
+    await ProviderRateLimiter.reset()
 
 
 @pytest.mark.asyncio
 async def test_llm_node_wired_to_model_router():
-    ProviderRateLimiter.reset()
+    await ProviderRateLimiter.reset()
     node_def = NodeDefinition(
         id="llm1",
         type="llm",
