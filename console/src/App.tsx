@@ -9,7 +9,7 @@ interface WorkflowRun {
   status: string;
   input: Record<string, any>;
   output: Record<string, any> | null;
-  total_tokens: int;
+  total_tokens: number;
   total_cost_usd: number;
   created_at: string;
 }
