@@ -100,48 +100,28 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """
-    Initialize the database connection pool, create tables, and seed default data.
+    Initialize database schema and seed default records.
 
-    Called during FastAPI lifespan startup.
+    Creates tables if missing and seeds default tenant.
     """
     engine = get_engine()
-    # Create missing tables automatically
     async with engine.begin() as conn:
+        from vortex.storage.models import Base
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database connection verified and schema synchronized")
+    logger.info("Database connection and schema verified")
 
-    # Seed default tenant and API key if missing
     try:
-        import hashlib
-        import uuid
-        from sqlalchemy import select
-        from vortex.storage.models import ApiKey, Tenant
+        from vortex.api.deps import DEFAULT_TENANT_ID
+        from vortex.storage.models import Tenant
 
         async with get_session() as session:
-            dev_tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
-            tenant = await session.get(Tenant, dev_tenant_id)
+            tenant = await session.get(Tenant, DEFAULT_TENANT_ID)
             if not tenant:
-                tenant = Tenant(id=dev_tenant_id, name="Default Production Tenant")
-                session.add(tenant)
-                await session.flush()
-
-            dev_key_hash = hashlib.sha256(b"vtx_live_dev").hexdigest()
-            key_stmt = select(ApiKey).where(ApiKey.key_hash == dev_key_hash)
-            res = await session.execute(key_stmt)
-            if not res.scalar_one_or_none():
-                dev_key = ApiKey(
-                    id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
-                    tenant_id=dev_tenant_id,
-                    name="Default Live Key",
-                    key_prefix="vtx_live",
-                    key_hash=dev_key_hash,
-                    role="owner",
-                    is_active=True,
-                )
-                session.add(dev_key)
-                logger.info("Seeded default API key (vtx_live_dev)")
+                session.add(Tenant(id=DEFAULT_TENANT_ID, name="Default Tenant"))
+                await session.commit()
+                logger.info("Default tenant seeded")
     except Exception as e:
-        logger.warning("Default API key seed skipped or failed", error=str(e))
+        logger.warning("Default tenant seed warning (non-fatal)", error=str(e))
 
 
 async def close_db() -> None:

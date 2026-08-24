@@ -41,6 +41,7 @@ class CheckpointStore:
         key = str(state.run_id)
         cls._cache[key] = state.model_copy(deep=True)
 
+        output_vars = {k: v for k, v in state.completed_nodes.items() if not k.startswith("_")}
         try:
             async with get_session() as session:
                 run = await session.get(WorkflowRun, state.run_id)
@@ -52,6 +53,7 @@ class CheckpointStore:
                 if run:
                     run.checkpoint = state.model_dump(mode="json")
                     run.status = state.status.value
+                    run.output = output_vars
                     run.total_tokens = state.total_tokens
                     run.total_cost_usd = state.total_cost_usd
                     run.heartbeat_at = datetime.now(timezone.utc)
@@ -64,6 +66,7 @@ class CheckpointStore:
                         tenant_id=state.tenant_id,
                         status=state.status.value,
                         input=state.variables,
+                        output=output_vars,
                         checkpoint=state.model_dump(mode="json"),
                         total_tokens=state.total_tokens,
                         total_cost_usd=state.total_cost_usd,

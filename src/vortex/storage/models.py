@@ -59,8 +59,10 @@ class UUIDType(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return value
-        if not isinstance(value, uuid.UUID):
-            return str(uuid.UUID(str(value)))
+        if isinstance(value, str):
+            value = uuid.UUID(value)
+        if dialect.name == "postgresql":
+            return value
         return str(value)
 
     def process_result_value(self, value, dialect):
