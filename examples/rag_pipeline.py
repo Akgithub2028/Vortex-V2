@@ -14,7 +14,7 @@ async def main():
     wf.add_llm_node(
         node_id="generate",
         prompt="Context: {context}\nQuestion: {question}\nAnswer:",
-        model="openai/gpt-4o",
+        model="nvidia/meta/llama-3.1-70b-instruct",
     )
 
     # Step 2: Inline Quality Evaluation Gate
@@ -26,15 +26,19 @@ async def main():
         dependencies=["generate"],
     )
 
-    client = VortexClient(base_url="http://localhost:8000")
+    client = VortexClient(base_url="http://localhost:8000", api_key="vtx_live_dev")
 
-    await client.run_workflow(
+    run = await client.run_workflow(
         wf,
         input={
             "context": "PostgreSQL 16 added support for pgvector IVFFlat and HNSW vector index acceleration.",
             "question": "What vector index algorithms does PostgreSQL 16 support via pgvector?",
         },
     )
+
+    print(f"✅ RAG Pipeline Completed! Run ID: {run.id}")
+    print(f"📊 Status: {run.status} | Total Tokens: {run.total_tokens} | Cost: ${run.total_cost_usd:.6f}")
+    print("📝 Generation Output:", run.output)
 
 
 if __name__ == "__main__":

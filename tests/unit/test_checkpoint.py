@@ -3,7 +3,7 @@ Unit tests for CheckpointStore persistence and orphan recovery logic.
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -48,7 +48,7 @@ async def test_checkpoint_save_and_load(async_client):
 async def test_recover_orphaned_workflows(async_client):
     run_id = uuid.uuid4()
     tenant_id = uuid.uuid4()
-    old_time = datetime.utcnow() - timedelta(minutes=10)
+    old_time = datetime.now(timezone.utc) - timedelta(minutes=10)
 
     async with get_session() as session:
         run = WorkflowRun(

@@ -1,65 +1,173 @@
-# Vortex Production Deployment Guide
+# VoRTeX Production Deployment Guide
 
-This guide details how to deploy **Vortex** (`vortex-ai`) in production environments using Kubernetes or Docker Compose.
+This guide covers deploying VoRTeX as a **Vercel + Railway hybrid** — the recommended production architecture for portfolio and small-scale SaaS usage.
 
 ---
 
-## 1. Core Environment Variables
+## Architecture Overview
 
-Copy `.env.example` to configure your environment. Vortex requires strict configuration in production.
+```text
+┌──────────────────────────────────────────────────┐
+│            VERCEL (Free Tier)                     │
+│        React + Vite Console (SPA)                │
+│     https://vortex-console.vercel.app            │
+└───────────────────────┬──────────────────────────┘
+                        │ HTTPS (fetch / SSE)
+                        ▼
+┌──────────────────────────────────────────────────┐
+│          RAILWAY (Hobby Plan — $5/mo)            │
+│    FastAPI API Gateway + Background Worker       │
+│  https://vortex-api-production.up.railway.app    │
+└──────────┬───────────────────────┬───────────────┘
+           │                       │
+           ▼                       ▼
+┌─────────────────────┐  ┌────────────────────────┐
+│  NEON.TECH (Free)   │  │  UPSTASH (Free)        │
+│  PostgreSQL 16      │  │  Serverless Redis (TLS) │
+└─────────────────────┘  └────────────────────────┘
+```
+
+**Monthly Cost:** $0–$5 total
+
+---
+
+## 1. Prerequisites
+
+- **GitHub account** with the VoRTeX repository
+- **NVIDIA NIM API key** (free at [build.nvidia.com](https://build.nvidia.com/))
+
+---
+
+## 2. Provision Managed Infrastructure
+
+### 2.1 Neon.tech PostgreSQL (Free Tier)
+
+1. Sign up at [neon.tech](https://neon.tech)
+2. Create a new project: name `vortex`, region `US East (Ohio)`, PostgreSQL 16
+3. Copy the connection string and convert to asyncpg format:
+   ```
+   postgresql+asyncpg://user:pass@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+
+### 2.2 Upstash Redis (Free Tier)
+
+1. Sign up at [upstash.com](https://upstash.com)
+2. Create a Redis database: name `vortex-redis`, region `US-East-1`, TLS enabled
+3. Copy the Redis URL (note `rediss://` with double-s for TLS):
+   ```
+   rediss://default:password@usw2-xxx.upstash.io:6379
+   ```
+
+---
+
+## 3. Deploy Backend to Railway
+
+### 3.1 Project Setup
+
+1. Sign up at [railway.app](https://railway.app) with GitHub
+2. Create a new project → Deploy from GitHub → Select `VoRTeX` repo
+3. Railway will detect `railway.toml` and use the Dockerfile
+
+### 3.2 Environment Variables
+
+Set these in the Railway dashboard → Variables tab:
+
+| Variable | Value |
+|---|---|
+| `VORTEX_ENVIRONMENT` | `production` |
+| `VORTEX_DATABASE_URL` | `postgresql+asyncpg://...neon.tech/...?sslmode=require` |
+| `VORTEX_REDIS_URL` | `rediss://...upstash.io:6379` |
+| `VORTEX_NVIDIA_API_KEY` | `nvapi-...` |
+| `VORTEX_JWT_SECRET_KEY` | *(generate with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`)* |
+| `VORTEX_API_CORS_ORIGINS` | `["https://vortex-console.vercel.app"]` |
+
+> **Note:** Railway automatically injects the `PORT` variable. The entrypoint script reads `$PORT` to bind uvicorn.
+
+### 3.3 Auto-Deploy from GitHub
+
+1. In Railway dashboard → Account Settings → Tokens → Create a token (`github-ci-deploy`)
+2. In GitHub repo → Settings → Secrets → Actions → New secret:
+   - Name: `RAILWAY_TOKEN`, Value: *(paste Railway token)*
+3. Every push to `main` now auto-deploys via `.github/workflows/deploy.yml`
+
+---
+
+## 4. Deploy Frontend to Vercel
+
+### 4.1 Project Setup
+
+1. Sign up at [vercel.com](https://vercel.com) with GitHub
+2. Import the VoRTeX repository
+3. **Set Root Directory to `console`**
+
+### 4.2 Build Settings
+
+| Setting | Value |
+|---|---|
+| Framework Preset | Vite |
+| Root Directory | `console` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+
+### 4.3 Environment Variables
+
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://vortex-api-production.up.railway.app` |
+
+### 4.4 Deploy
+
+Click Deploy. Vercel builds and serves the React SPA on its global edge CDN.
+
+---
+
+## 5. Verify Deployment
 
 ```bash
-# ─── Core Settings ───
-VORTEX_ENVIRONMENT=production
-VORTEX_LOG_LEVEL=INFO
+# Health check
+curl https://vortex-api-production.up.railway.app/healthz
 
-# ─── Auth & Security ───
-VORTEX_SECRET_KEY=generate_a_secure_32_byte_secret_here
-VORTEX_JWT_SECRET_KEY=generate_a_secure_jwt_secret_here
+# Run a workflow
+curl -X POST https://vortex-api-production.up.railway.app/v1/workflows/run \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: vtx_live_dev" \
+  -d '{"name": "smoke-test", "dag": {"nodes": {"test": {"type": "llm", "config": {"prompt": "Hello, VoRTeX!"}}}}}'
 
-# ─── PostgreSQL (Requires pgvector extension) ───
-VORTEX_DATABASE_URL=postgresql+asyncpg://vortex_user:password@postgres.internal:5432/vortex_db
-VORTEX_DATABASE_POOL_SIZE=20
-VORTEX_DATABASE_MAX_OVERFLOW=10
-
-# ─── Redis (Cache & LeaseManager) ───
-VORTEX_REDIS_URL=redis://redis.internal:6379/0
-
-# ─── Model Provider API Keys ───
-VORTEX_OPENAI_API_KEY=sk-proj-...
-VORTEX_ANTHROPIC_API_KEY=sk-ant-...
-
-# ─── Observability ───
-VORTEX_OTEL_ENABLED=true
-VORTEX_OTEL_EXPORTER_ENDPOINT=http://otel-collector.internal:4317
+# Prometheus metrics
+curl https://vortex-api-production.up.railway.app/metrics
 ```
 
 ---
 
-## 2. Kubernetes (Enterprise Scale)
+## 6. Local Development
 
-For high-scale enterprise deployments, separate the read-heavy API Gateway from the write-heavy Worker nodes.
+For local development, use Docker Compose:
 
-### Infrastructure Prerequisites
-1. **PostgreSQL 16**: Must have the `pgvector` extension installed for semantic caching. Use managed services like AWS RDS or GCP Cloud SQL. Ensure High Availability (HA) read replicas are configured if read models are heavily queried.
-2. **Redis 7+**: Use Redis Cluster or a highly available setup (AWS ElastiCache). The `LeaseManager` relies on Redis for atomic locks; if Redis goes down, worker nodes will halt processing to prevent split-brain execution.
+```bash
+# Start PostgreSQL + Redis
+docker compose -f docker/docker-compose.yml up -d postgres redis
 
-### Microservices
-- **FastAPI API Gateway (`Dockerfile.api`)**: 
-  Deploy as a `Deployment` behind an Ingress Controller. Configure Horizontal Pod Autoscaler (HPA) to target 70% CPU utilization. This layer is entirely stateless.
-- **Worker Service (`Dockerfile.worker`)**: 
-  Deploy as a `Deployment`. These workers consume the Redis Streams task queue and acquire leases. Scale these workers dynamically based on queue length (e.g., using KEDA).
+# Run API server
+make dev
 
-### OpenTelemetry Sidecars
-Vortex has native OpenTelemetry instrumentation. Deploy an OTel Collector sidecar or DaemonSet in your cluster to collect traces from both the API and Worker nodes. Traces are exported via OTLP gRPC.
+# Run console
+cd console && npm run dev
+```
 
 ---
 
-## 3. Docker Compose (Single Node Production)
+## 7. Environment Configuration Reference
 
-For smaller deployments or testing, you can run the entire stack on a single beefy VM (e.g., AWS EC2 or DigitalOcean Droplet) behind a reverse proxy like Traefik or Caddy.
+See [.env.example](../.env.example) for all available environment variables with documentation.
 
-```bash
-# Start all services (PostgreSQL, Redis, API, Worker)
-docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --build
-```
+### Key Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `VORTEX_ENVIRONMENT` | `development` | `development`, `staging`, `production`, `testing` |
+| `VORTEX_DATABASE_URL` | `postgresql+asyncpg://...localhost...` | PostgreSQL connection (asyncpg) |
+| `VORTEX_REDIS_URL` | `redis://localhost:6379/0` | Redis connection (`rediss://` for TLS) |
+| `VORTEX_NVIDIA_API_KEY` | `""` | NVIDIA NIM API key |
+| `VORTEX_JWT_SECRET_KEY` | `CHANGE-ME-IN-PRODUCTION` | JWT signing secret |
+| `VORTEX_API_CORS_ORIGINS` | `["http://localhost:3000", ...]` | Allowed CORS origins (JSON array) |
+| `PORT` | `8000` | Server port (injected by Railway) |

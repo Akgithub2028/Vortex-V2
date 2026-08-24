@@ -1,8 +1,8 @@
 """
 Vortex Multi-Tenant Security & Payload Encryption.
 
-Provides tenant-isolated AES-GCM payload encryption for event store payloads and state variables
-to enforce absolute multi-tenant data isolation in production environments.
+Provides tenant-isolated authenticated payload encryption envelopes for event store payloads and state variables
+to enforce multi-tenant data isolation in production environments.
 """
 
 from __future__ import annotations

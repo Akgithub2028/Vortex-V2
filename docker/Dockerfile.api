@@ -1,4 +1,4 @@
-FROM python:3.11-slim as builder
+FROM python:3.12-slim as builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir .
 
-FROM python:3.11-slim as runtime
+FROM python:3.12-slim as runtime
 
 WORKDIR /app
 
@@ -31,11 +31,14 @@ COPY --chown=appuser:appuser . .
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
+# Make entrypoint executable
+RUN chmod +x docker/entrypoint.sh
+
 USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/healthz || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/healthz || exit 1
 
-CMD ["uvicorn", "vortex.api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["docker/entrypoint.sh"]

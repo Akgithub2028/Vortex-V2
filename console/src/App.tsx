@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 
+// API base URL — set VITE_API_BASE_URL in Vercel environment variables
+// In local dev, the Vite proxy forwards /v1/* to localhost:8000 automatically
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+
 // Modern CSS Glassmorphic Styling
 const styles = `
   .app-container { display: flex; flex-direction: column; min-height: 100vh; background: #0b0f19; color: #f9fafb; }

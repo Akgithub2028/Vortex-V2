@@ -1,5 +1,8 @@
 """
-OpenAI Provider Adapter.
+NVIDIA NIM Provider Adapter.
+
+Executes completions against NVIDIA NIM API endpoints using OpenAI-compatible format.
+Supports real httpx HTTP execution and graceful fallback for dev/testing.
 """
 
 from __future__ import annotations
@@ -7,6 +10,7 @@ from __future__ import annotations
 import httpx
 from ulid import ULID
 
+from vortex.config import get_settings
 from vortex.gateway.cost_tracker import calculate_cost
 from vortex.gateway.providers.base import BaseProvider, CompletionRequest, CompletionResponse
 from vortex.observability.logger import get_logger
@@ -14,19 +18,25 @@ from vortex.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
-class OpenAIProvider(BaseProvider):
+class NVIDIANIMProvider(BaseProvider):
+    def __init__(self, api_key: str, base_url: str | None = None):
+        super().__init__(api_key)
+        settings = get_settings()
+        self.base_url = (base_url or settings.nvidia_base_url).rstrip("/")
+
     @property
     def provider_name(self) -> str:
-        return "openai"
+        return "nvidia"
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
-        logger.info("Executing OpenAI completion request", model=request.model)
+        logger.info("Executing NVIDIA NIM completion request", model=request.model)
 
         model_name = request.model
-        if model_name.startswith("openai/"):
+        if model_name.startswith("nvidia/"):
             model_name = model_name[7:]
 
-        if self.api_key and self.api_key not in ("mock-key", "sk-..."):
+        # Check if real API key is available
+        if self.api_key and self.api_key not in ("mock-key", "nvapi-..."):
             try:
                 headers = {
                     "Authorization": f"Bearer {self.api_key}",
@@ -44,7 +54,7 @@ class OpenAIProvider(BaseProvider):
 
                 async with httpx.AsyncClient(timeout=120.0) as client:
                     resp = await client.post(
-                        "https://api.openai.com/v1/chat/completions",
+                        f"{self.base_url}/chat/completions",
                         headers=headers,
                         json=payload,
                     )
@@ -59,9 +69,9 @@ class OpenAIProvider(BaseProvider):
                     cost_usd = calculate_cost(request.model, tokens_in, tokens_out)
 
                     return CompletionResponse(
-                        id=data.get("id", f"chatcmpl-{ULID()}"),
+                        id=data.get("id", f"chatcmpl-nim-{ULID()}"),
                         model=request.model,
-                        provider="openai",
+                        provider="nvidia",
                         content=content,
                         tokens_input=tokens_in,
                         tokens_output=tokens_out,
@@ -69,19 +79,20 @@ class OpenAIProvider(BaseProvider):
                         finish_reason=choice.get("finish_reason", "stop"),
                     )
             except Exception as e:
-                logger.warning("OpenAI API call failed, falling back to mock response", error=str(e))
+                logger.warning("NVIDIA NIM API call failed, falling back to mock response", error=str(e))
 
+        # Fallback / Mock completion mode for local dev or tests without live API keys
         user_prompts = [m.get("content", "") for m in request.messages if m.get("role") == "user"]
         prompt_str = " ".join(user_prompts) if user_prompts else "empty prompt"
         tokens_in = max(1, len(prompt_str.split()))
-        content = f"[OpenAI {request.model} Response]: {prompt_str}"
+        content = f"[NVIDIA NIM {request.model} Response]: {prompt_str}"
         tokens_out = max(1, len(content.split()))
         cost_usd = calculate_cost(request.model, tokens_in, tokens_out)
 
         return CompletionResponse(
-            id=f"chatcmpl-{ULID()}",
+            id=f"chatcmpl-nim-{ULID()}",
             model=request.model,
-            provider="openai",
+            provider="nvidia",
             content=content,
             tokens_input=tokens_in,
             tokens_output=tokens_out,

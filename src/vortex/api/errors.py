@@ -50,6 +50,26 @@ class NotFoundError(VortexError):
         )
 
 
+class WorkflowMaxStepsExceededError(VortexError):
+    def __init__(self, run_id: str, steps: int, max_steps: int):
+        super().__init__(
+            message=f"Workflow run '{run_id}' exceeded max step limit of {max_steps} (executed {steps} steps).",
+            code="WORKFLOW_MAX_STEPS_EXCEEDED",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"run_id": run_id, "steps": steps, "max_steps": max_steps},
+        )
+
+
+class WorkflowBudgetExceededError(VortexError):
+    def __init__(self, run_id: str, current_cost: float, max_budget: float):
+        super().__init__(
+            message=f"Workflow run '{run_id}' exceeded budget limit of ${max_budget:.4f} (accumulated ${current_cost:.4f}).",
+            code="WORKFLOW_BUDGET_EXCEEDED",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"run_id": run_id, "current_cost": current_cost, "max_budget": max_budget},
+        )
+
+
 class UnauthorizedError(VortexError):
     def __init__(self, message: str = "Authentication required."):
         super().__init__(

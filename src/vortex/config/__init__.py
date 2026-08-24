@@ -60,7 +60,12 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_workers: int = 1
-    api_cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:5173"])
+    api_cors_origins: list[str] = Field(default=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://*.vercel.app",
+        "https://*.up.railway.app",
+    ])
     api_rate_limit_rpm: int = 60  # default requests per minute per API key
 
     # ─── Database (PostgreSQL) ─────────────────────────────────────────────────
@@ -84,9 +89,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     google_api_key: str = ""
     groq_api_key: str = ""
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_rate_limit_rpm: int = 40
 
     # Default model for LLM nodes when not specified
-    default_model: str = "openai/gpt-4o-mini"
+    default_model: str = "nvidia/meta/llama-3.1-70b-instruct"
 
     # Fallback chain: comma-separated model identifiers
     default_fallback_models: str = "anthropic/claude-3-5-sonnet-latest,openai/gpt-4o"

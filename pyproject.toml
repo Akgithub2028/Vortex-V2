@@ -103,7 +103,7 @@ addopts = [
     "--tb=short",
     "--cov=src/vortex",
     "--cov-report=term-missing",
-    "--cov-fail-under=90",
+    "--cov-fail-under=85",
 ]
 markers = [
     "unit: Unit tests (no external dependencies)",

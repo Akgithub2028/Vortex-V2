@@ -12,6 +12,9 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "anthropic/claude-3-haiku": (0.00025, 0.00125),
     "google/gemini-1.5-pro": (0.00125, 0.005),
     "google/gemini-1.5-flash": (0.000075, 0.0003),
+    "nvidia/meta/llama-3.1-70b-instruct": (0.00035, 0.0004),
+    "nvidia/meta/llama-3.1-8b-instruct": (0.00005, 0.00008),
+    "nvidia/nemotron-4-340b-instruct": (0.0008, 0.001),
 }
 
 

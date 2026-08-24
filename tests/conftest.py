@@ -33,6 +33,14 @@ def reset_settings():
     get_settings.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+async def setup_db():
+    """Ensure database tables are created before each test."""
+    engine = get_engine()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
 @pytest.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """Provide AsyncClient instance bound to the FastAPI app with initialized SQLite tables."""

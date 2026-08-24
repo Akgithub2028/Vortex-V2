@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -15,6 +17,7 @@ class CompletionRequest(BaseModel):
     temperature: float = 0.7
     max_tokens: int | None = None
     stream: bool = False
+    response_format: dict[str, Any] | None = None
 
 
 class CompletionResponse(BaseModel):

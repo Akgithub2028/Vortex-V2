@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import func, select
@@ -102,7 +102,7 @@ class EventStore:
             sequence_number=next_seq,
             event_type=event_type,
             event_data=event_data,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
         session.add(event)
         await session.flush()

@@ -1,32 +1,80 @@
 """
-Token Bucket Rate Limiter using Redis.
+Vortex Provider Rate Limiter.
+
+Implements token-bucket rate limiting for model provider endpoints (e.g. 40 RPM limit for NVIDIA NIM).
+Uses Redis with in-memory fallback for local dev & testing.
 """
 
 from __future__ import annotations
 
+import asyncio
 import time
+from typing import ClassVar
 
+from vortex.config import get_settings
+from vortex.observability.logger import get_logger
 from vortex.storage.redis import get_redis
 
+logger = get_logger(__name__)
 
-class RateLimiter:
-    @staticmethod
-    async def is_rate_limited(key_prefix: str, identifier: str, limit_rpm: int) -> tuple[bool, int]:
+
+class ProviderRateLimiter:
+    """Manages rate limits per provider endpoint."""
+
+    _in_memory_buckets: ClassVar[dict[str, tuple[float, float]]] = {}  # key -> (tokens, last_update)
+    _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
+
+    @classmethod
+    async def acquire(cls, provider_name: str, max_rpm: int = 40) -> bool:
         """
-        Check if an identifier has exceeded its rate limit.
-
-        Returns (is_limited, retry_after_seconds).
+        Check and consume 1 rate limit token for provider_name.
+        Returns True if request is within rate limit, False if limit exceeded.
         """
-        redis = get_redis()
-        current_minute = int(time.time() // 60)
-        redis_key = f"rate:{key_prefix}:{identifier}:{current_minute}"
+        settings = get_settings()
+        if provider_name.lower() in ("nvidia", "nvidia_nim", "nim"):
+            max_rpm = settings.nvidia_rate_limit_rpm
 
-        current_count = await redis.incr(redis_key)
-        if current_count == 1:
-            await redis.expire(redis_key, 60)
+        key = f"vortex:ratelimit:provider:{provider_name.lower()}"
+        now = time.time()
 
-        if current_count > limit_rpm:
-            retry_after = 60 - int(time.time() % 60)
-            return True, retry_after
+        # Try Redis Rate Limiting (sliding window counter)
+        try:
+            client = get_redis()
+            pipe = client.pipeline()
+            # Window key per minute
+            minute_key = f"{key}:{int(now // 60)}"
+            pipe.incr(minute_key)
+            pipe.expire(minute_key, 120)
+            res = await pipe.execute()
+            count = res[0]
+            if count > max_rpm:
+                logger.warning("Provider rate limit exceeded", provider=provider_name, rpm=max_rpm, current=count)
+                return False
+            return True
+        except Exception:
+            pass
 
-        return False, 0
+        # In-memory Token Bucket fallback
+        async with cls._lock:
+            capacity = float(max_rpm)
+            refill_rate = capacity / 60.0  # tokens per second
+
+            if key not in cls._in_memory_buckets:
+                cls._in_memory_buckets[key] = (capacity - 1.0, now)
+                return True
+
+            tokens, last_update = cls._in_memory_buckets[key]
+            elapsed = now - last_update
+            tokens = min(capacity, tokens + elapsed * refill_rate)
+
+            if tokens >= 1.0:
+                cls._in_memory_buckets[key] = (tokens - 1.0, now)
+                return True
+            else:
+                logger.warning("In-memory provider rate limit exceeded", provider=provider_name, rpm=max_rpm)
+                return False
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset local rate limit state (for unit testing)."""
+        cls._in_memory_buckets.clear()

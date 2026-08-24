@@ -6,12 +6,14 @@ dynamic graph expansion, dependency resolution, human-in-the-loop pause/resume,
 and append-only event sourcing state projections.
 """
 
-from __future__ import annotations
-
+import asyncio
 from collections import defaultdict, deque
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
+from vortex.api.errors import WorkflowBudgetExceededError, WorkflowMaxStepsExceededError
+from vortex.config import get_settings
 from vortex.engine.checkpoint import CheckpointStore
+from vortex.engine.event_store import EventStore
 from vortex.engine.nodes import create_node
 from vortex.engine.state import (
     DAGDefinition,
@@ -138,11 +140,24 @@ class DynamicGraphExecutor:
         if event_callback:
             event_callback("workflow.started", {"run_id": str(self.state.run_id)})
 
+        settings = get_settings()
+        max_steps = int(self.state.variables.get("max_steps", 50))
+        max_budget = float(self.state.variables.get("max_budget_usd", 10.0))
+        step_count = 0
+
         try:
             while self.state.status == WorkflowStatus.RUNNING:
                 if self.state.status == WorkflowStatus.CANCELLED:
                     logger.info("Workflow execution cancelled", run_id=str(self.state.run_id))
                     break
+
+                # Reliability Gate 1: Check Cost Budget Cap
+                if float(self.state.total_cost_usd) > max_budget:
+                    raise WorkflowBudgetExceededError(
+                        run_id=str(self.state.run_id),
+                        current_cost=float(self.state.total_cost_usd),
+                        max_budget=max_budget,
+                    )
 
                 ready_nodes = self._get_next_ready_nodes()
 
@@ -163,6 +178,16 @@ class DynamicGraphExecutor:
                     break
 
                 for node_def in ready_nodes:
+                    step_count += 1
+
+                    # Reliability Gate 2: Check Step Count Limit
+                    if step_count > max_steps:
+                        raise WorkflowMaxStepsExceededError(
+                            run_id=str(self.state.run_id),
+                            steps=step_count,
+                            max_steps=max_steps,
+                        )
+
                     # Execute single node
                     self.state.current_nodes = [node_def.id]
                     await EventStore.append_event(
@@ -175,8 +200,11 @@ class DynamicGraphExecutor:
                         event_callback("node.started", {"node_id": node_def.id, "type": node_def.type})
 
                     node_instance = create_node(node_def)
+                    node_timeout = float(node_def.config.get("timeout_seconds", 60.0))
+
                     try:
-                        output = await node_instance.execute(self.state)
+                        # Reliability Gate 3: Enforce Node Execution Timeout
+                        output = await asyncio.wait_for(node_instance.execute(self.state), timeout=node_timeout)
                         self.state.completed_nodes[node_def.id] = output
 
                         if isinstance(output, dict):

@@ -4,18 +4,24 @@ Model Gateway Router — provider selection, fallback routing chain, guardrail i
 
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import TYPE_CHECKING
 
 from vortex.config import get_settings
 from vortex.gateway.cache import GatewayCache
 from vortex.gateway.circuit_breaker import CircuitBreaker
 from vortex.gateway.providers import get_provider
+from vortex.gateway.rate_limiter import ProviderRateLimiter
 from vortex.guardrails import GuardrailsEngine
 from vortex.observability.logger import get_logger
 from vortex.observability.metrics import (
     LLM_CACHE_HITS_TOTAL,
     LLM_CACHE_MISSES_TOTAL,
+    LLM_COST_USD_TOTAL,
+    LLM_LATENCY_SECONDS,
     LLM_REQUESTS_TOTAL,
+    LLM_TOKENS_TOTAL,
 )
 
 if TYPE_CHECKING:
@@ -81,33 +87,74 @@ class ModelRouter:
                 logger.warning("Circuit breaker OPEN, skipping provider", provider=provider_name)
                 continue
 
-            try:
-                # Prepare provider
-                api_key = getattr(settings, f"{provider_name}_api_key", "")
-                provider = get_provider(provider_name, api_key)
+            # Check rate limiter
+            if not await ProviderRateLimiter.acquire(provider_name):
+                logger.warning("Provider rate limit reached, trying next model in chain", provider=provider_name)
+                continue
 
-                from vortex.gateway.affinity import KVCacheAffinityRouter, compute_prefix_hash
+            # Retry loop per provider
+            max_retries = settings.gateway_max_retries
+            base_delay = settings.gateway_base_delay_seconds
 
-                prefix_hash = compute_prefix_hash(request.messages)
-                req = request.model_copy(update={"model": target_model})
-                response = await provider.complete(req)
+            for attempt in range(1, max_retries + 1):
+                start_time = time.perf_counter()
+                try:
+                    # Prepare provider
+                    api_key = getattr(settings, f"{provider_name}_api_key", "")
+                    provider = get_provider(provider_name, api_key)
 
-                cb.record_success()
-                LLM_REQUESTS_TOTAL.labels(provider=provider_name, model=target_model, status="success").inc()
+                    from vortex.gateway.affinity import KVCacheAffinityRouter, compute_prefix_hash
 
-                # Register KV-cache affinity binding
-                await KVCacheAffinityRouter.register_affinity(prefix_hash, target_model)
+                    prefix_hash = compute_prefix_hash(request.messages)
+                    req = request.model_copy(update={"model": target_model})
+                    response = await provider.complete(req)
+                    elapsed_seconds = time.perf_counter() - start_time
+                    latency_ms = int(elapsed_seconds * 1000)
 
-                # Cache response
-                if use_cache and settings.cache_enabled:
-                    await GatewayCache.set(request, response, ttl=settings.cache_ttl_seconds)
+                    cb.record_success()
 
-                return response
+                    # Record metrics & logs
+                    LLM_REQUESTS_TOTAL.labels(provider=provider_name, model=target_model, status="success").inc()
+                    LLM_LATENCY_SECONDS.labels(provider=provider_name, model=target_model).observe(elapsed_seconds)
+                    LLM_TOKENS_TOTAL.labels(provider=provider_name, model=target_model, direction="input").inc(response.tokens_input)
+                    LLM_TOKENS_TOTAL.labels(provider=provider_name, model=target_model, direction="output").inc(response.tokens_output)
+                    LLM_COST_USD_TOTAL.labels(provider=provider_name, model=target_model).inc(response.cost_usd)
 
-            except Exception as e:
-                logger.error("Provider call failed, trying fallback", provider=provider_name, error=str(e))
-                cb.record_failure()
-                LLM_REQUESTS_TOTAL.labels(provider=provider_name, model=target_model, status="error").inc()
-                last_error = e
+                    logger.info(
+                        "LLM completion call succeeded",
+                        provider=provider_name,
+                        model=target_model,
+                        tokens_in=response.tokens_input,
+                        tokens_out=response.tokens_output,
+                        cost_usd=response.cost_usd,
+                        latency_ms=latency_ms,
+                    )
+
+                    # Register KV-cache affinity binding
+                    await KVCacheAffinityRouter.register_affinity(prefix_hash, target_model)
+
+                    # Cache response
+                    if use_cache and settings.cache_enabled:
+                        await GatewayCache.set(request, response, ttl=settings.cache_ttl_seconds)
+
+                    return response
+
+                except Exception as e:
+                    elapsed_seconds = time.perf_counter() - start_time
+                    logger.warning(
+                        "Provider call attempt failed",
+                        provider=provider_name,
+                        model=target_model,
+                        attempt=attempt,
+                        max_retries=max_retries,
+                        error=str(e),
+                    )
+                    last_error = e
+
+                    if attempt < max_retries:
+                        await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
+                    else:
+                        cb.record_failure()
+                        LLM_REQUESTS_TOTAL.labels(provider=provider_name, model=target_model, status="error").inc()
 
         raise RuntimeError(f"All model providers failed in router chain. Last error: {last_error}")
