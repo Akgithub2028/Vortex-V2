@@ -3,11 +3,15 @@ Simple Sequential LLM Workflow Chain Example using Vortex SDK.
 """
 
 import asyncio
+import os
 
 from vortex.sdk import VortexClient, Workflow
 
 
 async def main():
+    base_url = os.getenv("VORTEX_API_URL", "https://vortex-v2-production.up.railway.app")
+    api_key = os.getenv("VORTEX_API_KEY", "vtx_live_dev")
+
     # 1. Define workflow DAG
     wf = Workflow(name="simple-sequential-chain")
     wf.add_llm_node(
@@ -23,7 +27,8 @@ async def main():
     )
 
     # 2. Initialize SDK client & run workflow
-    client = VortexClient(base_url="http://localhost:8000", api_key="vtx_live_dev")
+    print(f"🚀 Connecting to Vortex API at: {base_url}")
+    client = VortexClient(base_url=base_url, api_key=api_key)
     run = await client.run_workflow(wf, input={"topic": "Durable AI Execution Engines"})
 
     print(f"✅ Workflow Run Completed! ID: {run.id}")

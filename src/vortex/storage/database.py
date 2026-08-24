@@ -100,15 +100,48 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """
-    Initialize the database connection pool.
+    Initialize the database connection pool, create tables, and seed default data.
 
     Called during FastAPI lifespan startup.
     """
     engine = get_engine()
-    # Verify connectivity
+    # Create missing tables automatically
     async with engine.begin() as conn:
-        await conn.run_sync(lambda _: None)
-    logger.info("Database connection verified")
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database connection verified and schema synchronized")
+
+    # Seed default tenant and API key if missing
+    try:
+        import hashlib
+        import uuid
+        from sqlalchemy import select
+        from vortex.storage.models import ApiKey, Tenant
+
+        async with get_session() as session:
+            dev_tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+            tenant = await session.get(Tenant, dev_tenant_id)
+            if not tenant:
+                tenant = Tenant(id=dev_tenant_id, name="Default Production Tenant")
+                session.add(tenant)
+                await session.flush()
+
+            dev_key_hash = hashlib.sha256(b"vtx_live_dev").hexdigest()
+            key_stmt = select(ApiKey).where(ApiKey.key_hash == dev_key_hash)
+            res = await session.execute(key_stmt)
+            if not res.scalar_one_or_none():
+                dev_key = ApiKey(
+                    id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
+                    tenant_id=dev_tenant_id,
+                    name="Default Live Key",
+                    key_prefix="vtx_live",
+                    key_hash=dev_key_hash,
+                    role="owner",
+                    is_active=True,
+                )
+                session.add(dev_key)
+                logger.info("Seeded default API key (vtx_live_dev)")
+    except Exception as e:
+        logger.warning("Default API key seed skipped or failed", error=str(e))
 
 
 async def close_db() -> None:
