@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Only deploy if CI passes (ci.yml should be required via branch protection)
+    if: "${{ secrets.RAILWAY_TOKEN != '' }}"
     steps:
       - uses: actions/checkout@v4
 

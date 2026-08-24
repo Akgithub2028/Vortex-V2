@@ -10,7 +10,7 @@ Defines:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
@@ -97,7 +97,7 @@ class WorkflowState(BaseModel):
 
     # Checkpoint versioning for optimistic locking
     version: int = 1
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def is_terminal(self) -> bool:
         return self.status in (WorkflowStatus.COMPLETED, WorkflowStatus.FAILED, WorkflowStatus.CANCELLED)

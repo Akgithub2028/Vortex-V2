@@ -213,10 +213,7 @@ async def list_workflow_runs(
     """Retrieve recent workflow runs from database for active tenant."""
     async with get_session() as session:
         result = await session.execute(
-            select(WorkflowRun)
-            .where(WorkflowRun.tenant_id == auth.tenant_id)
-            .order_by(WorkflowRun.created_at.desc())
-            .limit(limit)
+            select(WorkflowRun).where(WorkflowRun.tenant_id == auth.tenant_id).order_by(WorkflowRun.created_at.desc()).limit(limit)
         )
         runs = result.scalars().all()
         return [

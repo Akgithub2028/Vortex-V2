@@ -8,7 +8,8 @@ and append-only event sourcing state projections.
 
 import asyncio
 from collections import defaultdict, deque
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from vortex.api.errors import WorkflowBudgetExceededError, WorkflowMaxStepsExceededError
 from vortex.config import get_settings
@@ -22,9 +23,6 @@ from vortex.engine.state import (
     WorkflowStatus,
 )
 from vortex.observability.logger import get_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 logger = get_logger(__name__)
 
@@ -124,7 +122,6 @@ class DynamicGraphExecutor:
         """
         Execute the workflow graph dynamically.
         """
-        from vortex.engine.event_store import EventStore
         from vortex.engine.projector import StateProjector
         from vortex.storage.database import get_session
 
@@ -140,7 +137,6 @@ class DynamicGraphExecutor:
         if event_callback:
             event_callback("workflow.started", {"run_id": str(self.state.run_id)})
 
-        settings = get_settings()
         max_steps = int(self.state.variables.get("max_steps", 50))
         max_budget = float(self.state.variables.get("max_budget_usd", 10.0))
         step_count = 0

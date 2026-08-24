@@ -59,15 +59,17 @@ async def test_get_workflow_run_endpoint(async_client):
     from vortex.storage.models import WorkflowRun
 
     async with get_session() as session:
-        session.add(WorkflowRun(
-            id=run_id,
-            tenant_id=dev_tenant_id,
-            status="COMPLETED",
-            input={},
-            output={"n1": {"result": 42}},
-            total_tokens=100,
-            total_cost_usd=0.001,
-        ))
+        session.add(
+            WorkflowRun(
+                id=run_id,
+                tenant_id=dev_tenant_id,
+                status="COMPLETED",
+                input={},
+                output={"n1": {"result": 42}},
+                total_tokens=100,
+                total_cost_usd=0.001,
+            )
+        )
 
     await CheckpointStore.save_checkpoint(state)
 
@@ -97,12 +99,14 @@ async def test_cancel_workflow_run_endpoint(async_client):
     from vortex.storage.models import WorkflowRun
 
     async with get_session() as session:
-        session.add(WorkflowRun(
-            id=run_id,
-            tenant_id=dev_tenant_id,
-            status="RUNNING",
-            input={},
-        ))
+        session.add(
+            WorkflowRun(
+                id=run_id,
+                tenant_id=dev_tenant_id,
+                status="RUNNING",
+                input={},
+            )
+        )
 
     await CheckpointStore.save_checkpoint(state)
 
@@ -133,12 +137,14 @@ async def test_approve_human_node_endpoint(async_client):
     from vortex.storage.models import WorkflowRun
 
     async with get_session() as session:
-        session.add(WorkflowRun(
-            id=run_id,
-            tenant_id=dev_tenant_id,
-            status="AWAITING_APPROVAL",
-            input={},
-        ))
+        session.add(
+            WorkflowRun(
+                id=run_id,
+                tenant_id=dev_tenant_id,
+                status="AWAITING_APPROVAL",
+                input={},
+            )
+        )
 
     await CheckpointStore.save_checkpoint(state)
 

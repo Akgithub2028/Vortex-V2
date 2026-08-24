@@ -10,7 +10,7 @@ Implements:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import ClassVar
 
 from sqlalchemy import select
@@ -37,7 +37,7 @@ class CheckpointStore:
         Updates or creates `WorkflowRun` record.
         """
         state.version += 1
-        state.updated_at = datetime.now(timezone.utc)
+        state.updated_at = datetime.now(UTC)
         key = str(state.run_id)
         cls._cache[key] = state.model_copy(deep=True)
 
@@ -56,9 +56,9 @@ class CheckpointStore:
                     run.output = output_vars
                     run.total_tokens = state.total_tokens
                     run.total_cost_usd = state.total_cost_usd
-                    run.heartbeat_at = datetime.now(timezone.utc)
+                    run.heartbeat_at = datetime.now(UTC)
                     if state.is_terminal():
-                        run.completed_at = datetime.now(timezone.utc)
+                        run.completed_at = datetime.now(UTC)
                     session.add(run)
                 else:
                     run = WorkflowRun(
@@ -70,7 +70,7 @@ class CheckpointStore:
                         checkpoint=state.model_dump(mode="json"),
                         total_tokens=state.total_tokens,
                         total_cost_usd=state.total_cost_usd,
-                        heartbeat_at=datetime.now(timezone.utc),
+                        heartbeat_at=datetime.now(UTC),
                     )
                     session.add(run)
         except Exception as e:
@@ -127,13 +127,13 @@ class CheckpointStore:
         uid = uuid.UUID(key) if isinstance(run_id, str) else run_id
 
         if key in cls._cache:
-            cls._cache[key].updated_at = datetime.now(timezone.utc)
+            cls._cache[key].updated_at = datetime.now(UTC)
 
         try:
             async with get_session() as session:
                 run = await session.get(WorkflowRun, uid)
                 if run:
-                    run.heartbeat_at = datetime.now(timezone.utc)
+                    run.heartbeat_at = datetime.now(UTC)
         except Exception as e:
             logger.warning("Heartbeat update failed", run_id=key, error=str(e))
 
@@ -146,7 +146,7 @@ class CheckpointStore:
         than `engine_orphan_timeout_seconds`. Returns list of (run_id, tenant_id) tuples.
         """
         settings = get_settings()
-        cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.engine_orphan_timeout_seconds)
+        cutoff = datetime.now(UTC) - timedelta(seconds=settings.engine_orphan_timeout_seconds)
 
         recovered: list[tuple[uuid.UUID, uuid.UUID]] = []
 

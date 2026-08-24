@@ -9,9 +9,8 @@ Routes prompt template through the Model Gateway with support for:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
 from decimal import Decimal
+from typing import TYPE_CHECKING, Any
 
 from vortex.engine.nodes.base import BaseNode
 from vortex.gateway.providers.base import CompletionRequest

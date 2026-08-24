@@ -18,7 +18,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase repository name
+        id: repo
+        run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Build API Docker Image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/vortex-api:${{ github.ref_name }} -f docker/Dockerfile.api .
-          docker push ghcr.io/${{ github.repository }}/vortex-api:${{ github.ref_name }}
+          docker build -t ghcr.io/${{ env.REPO_NAME }}/vortex-api:${{ github.ref_name }} -f docker/Dockerfile.api .
+          docker push ghcr.io/${{ env.REPO_NAME }}/vortex-api:${{ github.ref_name }}

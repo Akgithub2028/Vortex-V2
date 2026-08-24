@@ -7,7 +7,8 @@ Provides type-safe registration, schema validation, and execution of tool functi
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from vortex.observability.logger import get_logger
 
@@ -162,8 +163,16 @@ def _json_extractor_tool(json_string: str, key: str | None = None) -> dict[str, 
 
 def _web_search_stub_tool(query: str, limit: int = 3) -> dict[str, Any]:
     results = [
-        {"title": f"Overview of {query}", "snippet": f"Detailed factual information regarding {query}.", "url": f"https://example.com/search?q={query}"},
-        {"title": f"{query} - Key Insights", "snippet": f"Recent developments and benchmark data for {query}.", "url": f"https://example.org/{query}"},
+        {
+            "title": f"Overview of {query}",
+            "snippet": f"Detailed factual information regarding {query}.",
+            "url": f"https://example.com/search?q={query}",
+        },
+        {
+            "title": f"{query} - Key Insights",
+            "snippet": f"Recent developments and benchmark data for {query}.",
+            "url": f"https://example.org/{query}",
+        },
     ][:limit]
 
     return {"query": query, "results": results, "total_results": len(results)}

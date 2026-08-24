@@ -41,8 +41,10 @@ async def test_budget_exceeded_error():
 
     # The executor catches WorkflowBudgetExceededError and marks workflow FAILED
     assert final_state.status == WorkflowStatus.FAILED
-    assert "exceeded budget limit" in final_state.variables.get("_workflow_error", "").lower() or \
-           "budget" in final_state.variables.get("_workflow_error", "").lower()
+    assert (
+        "exceeded budget limit" in final_state.variables.get("_workflow_error", "").lower()
+        or "budget" in final_state.variables.get("_workflow_error", "").lower()
+    )
 
 
 @pytest.mark.asyncio
@@ -74,8 +76,7 @@ async def test_max_steps_exceeded_error():
 
     # Executor catches WorkflowMaxStepsExceededError → marks FAILED
     assert final_state.status == WorkflowStatus.FAILED
-    assert "step" in final_state.variables.get("_workflow_error", "").lower() or \
-           "max" in final_state.variables.get("_workflow_error", "").lower()
+    assert "step" in final_state.variables.get("_workflow_error", "").lower() or "max" in final_state.variables.get("_workflow_error", "").lower()
 
 
 @pytest.mark.asyncio

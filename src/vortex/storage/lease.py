@@ -8,7 +8,7 @@ race conditions during worker execution and enable instant fault-recovery on wor
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import ClassVar
 
 from vortex.observability.logger import get_logger
@@ -69,7 +69,7 @@ class LeaseManager:
 
         # In-memory fallback for testing / isolated environments
         async with cls._lock:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if resource_id in cls._in_memory_leases:
                 curr_owner, expiry = cls._in_memory_leases[resource_id]
                 if curr_owner != owner_id and now < expiry:
@@ -101,7 +101,7 @@ class LeaseManager:
             logger.debug("Redis unavailable during lease renew, checking in-memory fallback", error=str(e))
 
         async with cls._lock:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if resource_id in cls._in_memory_leases:
                 curr_owner, expiry = cls._in_memory_leases[resource_id]
                 if curr_owner == owner_id and now < expiry:
@@ -149,7 +149,7 @@ class LeaseManager:
             pass
 
         async with cls._lock:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if resource_id in cls._in_memory_leases:
                 _, expiry = cls._in_memory_leases[resource_id]
                 return now < expiry

@@ -5,6 +5,7 @@ Unit tests for ToolRegistry, Built-in Tools, ToolNode integration, and Structure
 from __future__ import annotations
 
 import uuid
+
 import pytest
 
 from vortex.engine.nodes import create_node

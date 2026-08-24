@@ -8,6 +8,7 @@ verifies batch evaluation runner statistics, and tests evaluation gate execution
 from __future__ import annotations
 
 import uuid
+
 import pytest
 
 from vortex.eval.runner import DatasetItem, EvaluationRunner

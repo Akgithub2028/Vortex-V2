@@ -3,7 +3,7 @@ Unit tests for Vortex StateProjector CQRS component.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -27,7 +27,7 @@ async def test_state_projector_reduction():
             sequence_number=1,
             event_type="WorkflowStarted",
             event_data={"input": {"topic": "Quantum Computing"}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -36,7 +36,7 @@ async def test_state_projector_reduction():
             sequence_number=2,
             event_type="NodeStarted",
             event_data={"node_id": "llm1", "node_type": "llm"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -45,7 +45,7 @@ async def test_state_projector_reduction():
             sequence_number=3,
             event_type="NodeCompleted",
             event_data={"node_id": "llm1", "output": {"text": "Summary of quantum"}, "tokens": 150, "cost_usd": "0.003"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -54,7 +54,7 @@ async def test_state_projector_reduction():
             sequence_number=4,
             event_type="WorkflowCompleted",
             event_data={"output": {"text": "Summary of quantum"}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
     ]
 
@@ -83,7 +83,7 @@ async def test_state_projector_read_model_materialization():
             sequence_number=1,
             event_type="WorkflowStarted",
             event_data={"input": {"prompt": "Hello world"}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -92,7 +92,7 @@ async def test_state_projector_read_model_materialization():
             sequence_number=2,
             event_type="NodeCompleted",
             event_data={"node_id": "step1", "node_type": "tool", "output": {"res": "ok"}, "tokens": 50, "cost_usd": "0.001"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -101,7 +101,7 @@ async def test_state_projector_read_model_materialization():
             sequence_number=3,
             event_type="WorkflowCompleted",
             event_data={"output": {"res": "ok"}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
     ]
 
@@ -126,7 +126,7 @@ async def test_state_projector_human_and_failure_events():
             sequence_number=1,
             event_type="WorkflowStarted",
             event_data={"input": {}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -135,7 +135,7 @@ async def test_state_projector_human_and_failure_events():
             sequence_number=2,
             event_type="NodeStarted",
             event_data={"node_id": "h1"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -144,7 +144,7 @@ async def test_state_projector_human_and_failure_events():
             sequence_number=3,
             event_type="HumanApprovalRequested",
             event_data={"node_id": "h1"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -153,7 +153,7 @@ async def test_state_projector_human_and_failure_events():
             sequence_number=4,
             event_type="HumanApproved",
             event_data={"node_id": "h1", "output": {"approved": True}},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -162,7 +162,7 @@ async def test_state_projector_human_and_failure_events():
             sequence_number=5,
             event_type="NodeFailed",
             event_data={"node_id": "n2", "error": "API Error"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         WorkflowEvent(
             id=uuid.uuid4(),
@@ -171,7 +171,7 @@ async def test_state_projector_human_and_failure_events():
             sequence_number=6,
             event_type="WorkflowFailed",
             event_data={"error": "API Error"},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
     ]
 

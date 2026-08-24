@@ -7,6 +7,7 @@ async session factory for FastAPI routes and background workers.
 
 from __future__ import annotations
 
+import uuid
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -107,11 +108,13 @@ async def init_db() -> None:
     engine = get_engine()
     async with engine.begin() as conn:
         from vortex.storage.models import Base
+
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database connection and schema verified")
 
     try:
         from vortex.storage.models import Tenant
+
         default_tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
         async with get_session() as session:

@@ -8,7 +8,7 @@ Reconstructs in-memory WorkflowState and materializes relational read models
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -41,7 +41,7 @@ class StateProjector:
             tenant_id=first_event.tenant_id,
             status=WorkflowStatus.PENDING,
             version=len(events),
-            updated_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(UTC),
         )
 
         for event in events:
@@ -159,7 +159,7 @@ class StateProjector:
             run.total_tokens = state.total_tokens
             run.total_cost_usd = state.total_cost_usd
             if state.is_terminal():
-                run.completed_at = datetime.now(timezone.utc)
+                run.completed_at = datetime.now(UTC)
             if "_output" in state.variables:
                 run.output = state.variables["_output"]
             session.add(run)

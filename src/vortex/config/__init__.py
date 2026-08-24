@@ -60,7 +60,7 @@ def sanitize_asyncpg_url(url_str: str) -> str:
         for param in list(query.keys()):
             if param in unsupported:
                 del query[param]
-        return url._replace(query=query).render_as_string(hide_password=False)
+        return url._replace(query=query).render_as_string(hide_password=False)  # type: ignore[arg-type]
     except Exception:
         import re
 
@@ -102,12 +102,14 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_workers: int = 1
-    api_cors_origins: list[str] = Field(default=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://*.vercel.app",
-        "https://*.up.railway.app",
-    ])
+    api_cors_origins: list[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://*.vercel.app",
+            "https://*.up.railway.app",
+        ]
+    )
     api_rate_limit_rpm: int = 60  # default requests per minute per API key
 
     # ─── Database (PostgreSQL) ─────────────────────────────────────────────────
