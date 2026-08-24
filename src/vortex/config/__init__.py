@@ -31,6 +31,48 @@ class LogLevel(StrEnum):
     CRITICAL = "CRITICAL"
 
 
+def sanitize_asyncpg_url(url_str: str) -> str:
+    """
+    Sanitize PostgreSQL connection URL for SQLAlchemy's asyncpg dialect.
+
+    Removes libpq-specific parameters (like channel_binding, gssencmode)
+    and converts sslmode to ssl=require.
+    """
+    if "+asyncpg" not in url_str:
+        return url_str
+    try:
+        from sqlalchemy.engine import make_url
+
+        url = make_url(url_str)
+        query = dict(url.query)
+        if "sslmode" in query:
+            val = query.pop("sslmode")
+            if val in ("require", "verify-ca", "verify-full", "prefer", "true", "1"):
+                query["ssl"] = "require"
+        unsupported = {
+            "channel_binding",
+            "gssencmode",
+            "target_session_attrs",
+            "options",
+            "sslcompression",
+            "sslinline",
+        }
+        for param in list(query.keys()):
+            if param in unsupported:
+                del query[param]
+        return url._replace(query=query).render_as_string(hide_password=False)
+    except Exception:
+        import re
+
+        url_str = re.sub(r"[?&]channel_binding=[^&]*", "", url_str)
+        url_str = re.sub(r"[?&]gssencmode=[^&]*", "", url_str)
+        url_str = re.sub(r"[?&]target_session_attrs=[^&]*", "", url_str)
+        url_str = url_str.replace("sslmode=", "ssl=")
+        if "?" not in url_str and "&" in url_str:
+            url_str = url_str.replace("&", "?", 1)
+        return url_str
+
+
 class Settings(BaseSettings):
     """
     Central configuration object for the Vortex platform.
@@ -177,10 +219,8 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def _fix_asyncpg_sslmode(cls, v: str) -> str:
-        """SQLAlchemy's asyncpg dialect requires ssl=require instead of sslmode=require."""
-        if "+asyncpg" in v and "sslmode=" in v:
-            return v.replace("sslmode=", "ssl=")
-        return v
+        """Sanitize Postgres URL for asyncpg dialect (strips channel_binding, fixes sslmode)."""
+        return sanitize_asyncpg_url(v)
 
     @field_validator("jwt_secret_key")
     @classmethod

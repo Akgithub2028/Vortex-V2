@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 
-from vortex.config import get_settings
+from vortex.config import get_settings, sanitize_asyncpg_url
 from vortex.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -58,10 +58,7 @@ def get_engine() -> AsyncEngine:
             kwargs["pool_size"] = settings.database_pool_size
             kwargs["max_overflow"] = settings.database_max_overflow
 
-        db_url = settings.database_url
-        if "+asyncpg" in db_url and "sslmode=" in db_url:
-            db_url = db_url.replace("sslmode=", "ssl=")
-        
+        db_url = sanitize_asyncpg_url(settings.database_url)
         _engine = create_async_engine(db_url, **kwargs)
         logger.info("Database engine created", pool_size=settings.database_pool_size)
     return _engine
