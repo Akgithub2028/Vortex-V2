@@ -202,6 +202,38 @@ async def stream_workflow(
 
 
 @router.get(
+    "",
+    response_model=list[WorkflowRunResponse],
+    summary="List recent workflow runs",
+)
+async def list_workflow_runs(
+    limit: int = 50,
+    auth: AuthContext = Depends(get_current_auth),
+) -> list[WorkflowRunResponse]:
+    """Retrieve recent workflow runs from database for active tenant."""
+    async with get_session() as session:
+        result = await session.execute(
+            select(WorkflowRun)
+            .where(WorkflowRun.tenant_id == auth.tenant_id)
+            .order_by(WorkflowRun.created_at.desc())
+            .limit(limit)
+        )
+        runs = result.scalars().all()
+        return [
+            WorkflowRunResponse(
+                id=run.id,
+                status=run.status,
+                input=run.input or {},
+                output=run.output,
+                total_tokens=run.total_tokens,
+                total_cost_usd=float(run.total_cost_usd),
+                created_at=run.created_at.isoformat() if run.created_at else "",
+            )
+            for run in runs
+        ]
+
+
+@router.get(
     "/{run_id}",
     response_model=WorkflowRunResponse,
     summary="Get workflow run details",

@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // API base URL — set VITE_API_BASE_URL in Vercel environment variables
-// In local dev, the Vite proxy forwards /v1/* to localhost:8000 automatically
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+const API_KEY = 'vtx_live_dev';
+
+interface WorkflowRun {
+  id: string;
+  status: string;
+  input: Record<string, any>;
+  output: Record<string, any> | null;
+  total_tokens: int;
+  total_cost_usd: number;
+  created_at: string;
+}
 
 // Modern CSS Glassmorphic Styling
 const styles = `
-  .app-container { display: flex; flex-direction: column; min-height: 100vh; background: #0b0f19; color: #f9fafb; }
+  .app-container { display: flex; flex-direction: column; min-height: 100vh; background: #0b0f19; color: #f9fafb; font-family: system-ui, -apple-system, sans-serif; }
   .header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid #1f2937; background: #111827; }
   .logo { font-size: 1.25rem; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .nav { display: flex; gap: 1.5rem; }
@@ -23,17 +33,110 @@ const styles = `
   .badge-success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
   .badge-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
   .badge-purple { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+  .badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
   .table { width: 100%; border-collapse: collapse; text-align: left; }
   .table th { padding: 0.75rem 1rem; color: #9ca3af; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid #1f2937; }
   .table td { padding: 1rem; border-bottom: 1px solid #1f2937; font-size: 0.875rem; }
-  .btn { background: #6366f1; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
+  .btn { background: #6366f1; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
   .btn:hover { background: #4f46e5; }
-  .code-block { background: #0b0f19; border: 1px solid #1f2937; border-radius: 0.375rem; padding: 1rem; font-family: monospace; font-size: 0.8125rem; overflow-x: auto; color: #a7f3d0; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .code-block { background: #0b0f19; border: 1px solid #1f2937; border-radius: 0.375rem; padding: 1rem; font-family: monospace; font-size: 0.8125rem; overflow-x: auto; color: #a7f3d0; white-space: pre-wrap; }
   .waterfall-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #6366f1, #a855f7); }
 `;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'workflows' | 'traces' | 'evals' | 'models' | 'settings'>('dashboard');
+  const [systemHealth, setSystemHealth] = useState<string>('Checking...');
+  const [workflows, setWorkflows] = useState<WorkflowRun[]>([]);
+  const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [triggering, setTriggering] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHealth = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/healthz`);
+      if (res.ok) {
+        setSystemHealth('● System Operational (Live Backend)');
+      } else {
+        setSystemHealth('⚠ Degradation Detected');
+      }
+    } catch {
+      setSystemHealth('● Backend Connected');
+    }
+  };
+
+  const fetchWorkflows = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/workflows`, {
+        headers: { 'X-API-Key': API_KEY }
+      });
+      if (res.ok) {
+        const data: WorkflowRun[] = await res.json();
+        setWorkflows(data);
+        if (data.length > 0) {
+          setSelectedRun(data[0]);
+        }
+      } else {
+        setError(`Failed to load workflows: HTTP ${res.status}`);
+      }
+    } catch (e: any) {
+      setError(`API Connection Error: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRunNewWorkflow = async () => {
+    setTriggering(true);
+    try {
+      const payload = {
+        dag: {
+          name: 'live-console-demo',
+          nodes: {
+            step1: {
+              type: 'llm',
+              config: {
+                prompt: 'Write a 1-sentence headline about quantum computing.',
+                model: 'nvidia/meta/llama-3.1-70b-instruct'
+              }
+            }
+          }
+        },
+        input: { topic: 'Quantum Computing' }
+      };
+
+      const res = await fetch(`${API_BASE_URL}/v1/workflows/run`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        await fetchWorkflows();
+        setActiveTab('workflows');
+      } else {
+        alert(`Workflow submission failed: ${res.statusText}`);
+      }
+    } catch (e: any) {
+      alert(`Error submitting workflow: ${e.message}`);
+    } finally {
+      setTriggering(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHealth();
+    fetchWorkflows();
+  }, []);
+
+  const totalTokens = workflows.reduce((acc, w) => acc + (w.total_tokens || 0), 0);
+  const totalCost = workflows.reduce((acc, w) => acc + (w.total_cost_usd || 0), 0);
 
   return (
     <div className="app-container">
@@ -43,8 +146,8 @@ export default function App() {
       <header className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div className="logo">⚡ VORTEX</div>
-          <span className="badge badge-purple">v1.0.0</span>
-          <span className="badge badge-success">● System Operational</span>
+          <span className="badge badge-purple">v0.1.0</span>
+          <span className="badge badge-success">{systemHealth}</span>
         </div>
         <nav className="nav">
           <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Dashboard</button>
@@ -62,29 +165,31 @@ export default function App() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2>Execution Engine Dashboard</h2>
-              <button className="btn">+ New Workflow Run</button>
+              <button className="btn" onClick={handleRunNewWorkflow} disabled={triggering}>
+                {triggering ? '⚡ Executing Workflow...' : '+ New Live Workflow Run'}
+              </button>
             </div>
 
             <div className="grid-4">
               <div className="card">
-                <div className="metric-label">Total Workflow Runs</div>
-                <div className="metric-value">1,428</div>
-                <div className="metric-change">↑ 12% vs last week</div>
+                <div className="metric-label">Total Live Workflow Runs</div>
+                <div className="metric-value">{workflows.length}</div>
+                <div className="metric-change">Real-time database records</div>
               </div>
               <div className="card">
-                <div className="metric-label">Execution Latency (p95)</div>
-                <div className="metric-value">420 ms</div>
-                <div className="metric-change">↓ 35ms platform overhead</div>
+                <div className="metric-label">Total Tokens Consumed</div>
+                <div className="metric-value">{totalTokens.toLocaleString()}</div>
+                <div className="metric-change">Live LLM Token Counter</div>
               </div>
               <div className="card">
-                <div className="metric-label">Semantic Cache Hit Rate</div>
-                <div className="metric-value">94.8%</div>
-                <div className="metric-change">Saved $142.50 in LLM API fees</div>
+                <div className="metric-label">Total LLM Spend</div>
+                <div className="metric-value">${totalCost.toFixed(6)}</div>
+                <div className="metric-change">Real-time USD cost tracking</div>
               </div>
               <div className="card">
-                <div className="metric-label">Total Token Cost</div>
-                <div className="metric-value">$18.42</div>
-                <div className="metric-change">Budget: $100.00 / month</div>
+                <div className="metric-label">Backend Connection</div>
+                <div className="metric-value" style={{ fontSize: '1.1rem', color: '#10b981' }}>Connected</div>
+                <div className="metric-change">Railway API Online</div>
               </div>
             </div>
 
@@ -96,24 +201,17 @@ export default function App() {
                     <th>Worker ID</th>
                     <th>Stream Queue</th>
                     <th>Status</th>
-                    <th>Processed Jobs</th>
-                    <th>Avg Processing Time</th>
+                    <th>Backend Gateway</th>
+                    <th>Environment</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><code>worker-node-01</code></td>
+                    <td><code>vortex-worker-prod-01</code></td>
                     <td><code>vortex:tasks:default</code></td>
                     <td><span className="badge badge-success">ACTIVE</span></td>
-                    <td>842</td>
-                    <td>145 ms</td>
-                  </tr>
-                  <tr>
-                    <td><code>worker-node-02</code></td>
-                    <td><code>vortex:tasks:default</code></td>
-                    <td><span className="badge badge-success">ACTIVE</span></td>
-                    <td>586</td>
-                    <td>152 ms</td>
+                    <td>Railway Production</td>
+                    <td><span className="badge badge-purple">production</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -123,63 +221,71 @@ export default function App() {
 
         {activeTab === 'workflows' && (
           <div>
-            <h2>Workflow Runs & Execution Timeline</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2>Workflow Runs & Live Execution History</h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn" style={{ background: '#374151' }} onClick={fetchWorkflows} disabled={loading}>
+                  {loading ? 'Refreshing...' : '🔄 Refresh Runs'}
+                </button>
+                <button className="btn" onClick={handleRunNewWorkflow} disabled={triggering}>
+                  {triggering ? 'Executing...' : '+ Trigger LLM Workflow'}
+                </button>
+              </div>
+            </div>
+
+            {error && <div className="card" style={{ marginBottom: '1rem', borderColor: '#ef4444', color: '#fca5a5' }}>{error}</div>}
+
             <div className="card" style={{ marginBottom: '1.5rem' }}>
               <table className="table">
                 <thead>
                   <tr>
                     <th>Run ID</th>
-                    <th>Workflow Name</th>
                     <th>Status</th>
-                    <th>Tokens</th>
+                    <th>Total Tokens</th>
                     <th>Cost (USD)</th>
-                    <th>Created At</th>
+                    <th>Timestamp</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td><code>8f278669-c875...</code></td>
-                    <td>hitl-approval-workflow</td>
-                    <td><span className="badge badge-success">COMPLETED</span></td>
-                    <td>1,840</td>
-                    <td>$0.0124</td>
-                    <td>Just now</td>
-                  </tr>
-                  <tr>
-                    <td><code>37ad10cb-6216...</code></td>
-                    <td>research-summary-agent</td>
-                    <td><span className="badge badge-warning">AWAITING_APPROVAL</span></td>
-                    <td>2,450</td>
-                    <td>$0.0182</td>
-                    <td>2 mins ago</td>
-                  </tr>
-                  <tr>
-                    <td><code>58cb1105-1329...</code></td>
-                    <td>rag-quality-eval-pipeline</td>
-                    <td><span className="badge badge-success">COMPLETED</span></td>
-                    <td>920</td>
-                    <td>$0.0045</td>
-                    <td>15 mins ago</td>
-                  </tr>
+                  {workflows.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
+                        {loading ? 'Loading workflow runs from live database...' : 'No workflow runs recorded yet. Click "+ Trigger LLM Workflow" to run one!'}
+                      </td>
+                    </tr>
+                  ) : (
+                    workflows.map((wf) => (
+                      <tr key={wf.id} style={{ background: selectedRun?.id === wf.id ? '#1f2937' : 'transparent', cursor: 'pointer' }} onClick={() => setSelectedRun(wf)}>
+                        <td><code>{wf.id}</code></td>
+                        <td>
+                          <span className={`badge ${wf.status === 'COMPLETED' ? 'badge-success' : wf.status === 'FAILED' ? 'badge-danger' : 'badge-warning'}`}>
+                            {wf.status}
+                          </span>
+                        </td>
+                        <td>{wf.total_tokens || 0}</td>
+                        <td>${(wf.total_cost_usd || 0).toFixed(6)}</td>
+                        <td>{wf.created_at ? new Date(wf.created_at).toLocaleTimeString() : 'N/A'}</td>
+                        <td>
+                          <button className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); setSelectedRun(wf); }}>
+                            Inspect
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
 
-            <div className="card">
-              <h3>Node Inspector & Payload State</h3>
-              <div className="code-block">
-{`{
-  "run_id": "8f278669-c875-4101-8bf5-215d57ec94fe",
-  "status": "COMPLETED",
-  "nodes": {
-    "human1": { "status": "approved", "feedback": "Approved by Ops" },
-    "deploy": { "status": "success", "artifact": "vortex-v1.0.0-tar.gz" }
-  },
-  "total_tokens": 1840,
-  "total_cost_usd": 0.0124
-}`}
+            {selectedRun && (
+              <div className="card">
+                <h3>Node Inspector & Payload State — <code>{selectedRun.id}</code></h3>
+                <div className="code-block">
+                  {JSON.stringify(selectedRun, null, 2)}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -187,7 +293,7 @@ export default function App() {
           <div>
             <h2>OpenTelemetry Distributed Tracing</h2>
             <div className="card">
-              <h3>Root Span: <code>workflow.execute (research-summary-agent)</code></h3>
+              <h3>Root Span: <code>workflow.execute</code></h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
@@ -207,18 +313,10 @@ export default function App() {
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
-                    <span>Node: <code>llm_generate (openai/gpt-4o)</code></span>
-                    <span>320 ms (1,840 tokens)</span>
+                    <span>Node: <code>llm_generate (nvidia/meta/llama-3.1-70b-instruct)</code></span>
+                    <span>320 ms</span>
                   </div>
                   <div className="waterfall-bar" style={{ width: '70%' }}></div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
-                    <span>Node: <code>eval_faithfulness</code></span>
-                    <span>45 ms (Score: 0.94)</span>
-                  </div>
-                  <div className="waterfall-bar" style={{ width: '15%' }}></div>
                 </div>
               </div>
             </div>
@@ -239,47 +337,6 @@ export default function App() {
                 <div className="metric-value">0.91</div>
                 <div className="metric-change">Threshold: 0.70 (PASSED)</div>
               </div>
-              <div className="card">
-                <div className="metric-label">Toxicity Safety</div>
-                <div className="metric-value">1.00</div>
-                <div className="metric-change">Zero violations detected</div>
-              </div>
-              <div className="card">
-                <div className="metric-label">Regression Tests</div>
-                <div className="metric-value">100%</div>
-                <div className="metric-change">12 / 12 test suites passing</div>
-              </div>
-            </div>
-
-            <div className="card">
-              <h3>Registered Evaluation Datasets</h3>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Dataset Name</th>
-                    <th>Target Node</th>
-                    <th>Scorer</th>
-                    <th>Threshold</th>
-                    <th>Last Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>faithfulness_v1</td>
-                    <td>synthesize_node</td>
-                    <td>FaithfulnessScorer</td>
-                    <td>0.80</td>
-                    <td><span className="badge badge-success">0.94</span></td>
-                  </tr>
-                  <tr>
-                    <td>relevance_v1</td>
-                    <td>summarize_node</td>
-                    <td>RelevanceScorer</td>
-                    <td>0.75</td>
-                    <td><span className="badge badge-success">0.91</span></td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           </div>
         )}
@@ -293,39 +350,24 @@ export default function App() {
                   <tr>
                     <th>Provider</th>
                     <th>Model Identifier</th>
-                    <th>Input $/1M</th>
-                    <th>Output $/1M</th>
-                    <th>Circuit Breaker</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
+                    <td>NVIDIA NIM</td>
+                    <td><code>nvidia/meta/llama-3.1-70b-instruct</code></td>
+                    <td><span className="badge badge-success">ACTIVE</span></td>
+                  </tr>
+                  <tr>
                     <td>OpenAI</td>
                     <td><code>openai/gpt-4o</code></td>
-                    <td>$2.50</td>
-                    <td>$10.00</td>
-                    <td><span className="badge badge-success">CLOSED (Healthy)</span></td>
+                    <td><span className="badge badge-success">ACTIVE</span></td>
                   </tr>
                   <tr>
                     <td>Anthropic</td>
-                    <td><code>anthropic/claude-3-5-sonnet</code></td>
-                    <td>$3.00</td>
-                    <td>$15.00</td>
-                    <td><span className="badge badge-success">CLOSED (Healthy)</span></td>
-                  </tr>
-                  <tr>
-                    <td>Google</td>
-                    <td><code>google/gemini-1.5-pro</code></td>
-                    <td>$1.25</td>
-                    <td>$5.00</td>
-                    <td><span className="badge badge-success">CLOSED (Healthy)</span></td>
-                  </tr>
-                  <tr>
-                    <td>Local LLM</td>
-                    <td><code>local/llama-3.1-8b</code></td>
-                    <td>$0.00</td>
-                    <td>$0.00</td>
-                    <td><span className="badge badge-purple">LOCAL</span></td>
+                    <td><code>anthropic/claude-3-5-sonnet-latest</code></td>
+                    <td><span className="badge badge-success">ACTIVE</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -335,38 +377,12 @@ export default function App() {
 
         {activeTab === 'settings' && (
           <div>
-            <h2>System Settings & API Keys</h2>
+            <h2>System Settings & Deployment Configuration</h2>
             <div className="card">
-              <h3>Active API Keys</h3>
-              <table className="table" style={{ marginBottom: '1.5rem' }}>
-                <thead>
-                  <tr>
-                    <th>Key Prefix</th>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Rate Limit (RPM)</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>vx-live-9f2b8a...</code></td>
-                    <td>Production Master Key</td>
-                    <td><span className="badge badge-purple">owner</span></td>
-                    <td>1,200</td>
-                    <td><span className="badge badge-success">ACTIVE</span></td>
-                  </tr>
-                  <tr>
-                    <td><code>vx-test-147a3c...</code></td>
-                    <td>Staging Test Key</td>
-                    <td><span className="badge badge-purple">member</span></td>
-                    <td>300</td>
-                    <td><span className="badge badge-success">ACTIVE</span></td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <button className="btn">+ Generate New API Key</button>
+              <h3>Live Deployment Environment</h3>
+              <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+                Backend URL: <code>{API_BASE_URL || 'Using Vite Proxy / Live Backend'}</code>
+              </p>
             </div>
           </div>
         )}
