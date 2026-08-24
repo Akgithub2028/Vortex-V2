@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// API base URL — set VITE_API_BASE_URL in Vercel environment variables
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://vortex-v2-production.up.railway.app';
 const API_KEY = 'vtx_live_dev';
 
 interface WorkflowRun {

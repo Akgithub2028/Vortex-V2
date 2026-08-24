@@ -71,11 +71,11 @@ def create_app() -> FastAPI:
 
     # ─── Middleware ────────────────────────────────────────────────────────────
 
-    app.add_middleware(RequestIDMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.api_cors_origins,
-        allow_credentials=True,
+        allow_origins=["*"],
+        allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.up\.railway\.app",
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
