@@ -174,6 +174,14 @@ class Settings(BaseSettings):
         """SQLAlchemy sync URL for Alembic migrations."""
         return self.database_url.replace("+asyncpg", "")
 
+    @field_validator("database_url")
+    @classmethod
+    def _fix_asyncpg_sslmode(cls, v: str) -> str:
+        """SQLAlchemy's asyncpg dialect requires ssl=require instead of sslmode=require."""
+        if "+asyncpg" in v and "sslmode=" in v:
+            return v.replace("sslmode=", "ssl=")
+        return v
+
     @field_validator("jwt_secret_key")
     @classmethod
     def _warn_default_secret(cls, v: str) -> str:
