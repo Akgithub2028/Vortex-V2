@@ -50,8 +50,7 @@ async def init_redis() -> None:
         await client.ping()
         logger.info("Redis connection verified")
     except Exception as e:
-        logger.error("Failed to connect to Redis", error=str(e))
-        raise
+        logger.warning("Redis connection unavailable — semantic caching and distributed locks will operate in degraded mode", error=str(e))
 
 
 async def close_redis() -> None:
