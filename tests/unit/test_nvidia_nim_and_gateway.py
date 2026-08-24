@@ -56,6 +56,7 @@ async def test_provider_rate_limiter():
 
 @pytest.mark.asyncio
 async def test_llm_node_wired_to_model_router():
+    ProviderRateLimiter.reset()
     node_def = NodeDefinition(
         id="llm1",
         type="llm",
