@@ -10,14 +10,14 @@ This guide covers deploying VoRTeX as a **Vercel + Railway hybrid** — the reco
 ┌──────────────────────────────────────────────────┐
 │            VERCEL (Free Tier)                     │
 │        React + Vite Console (SPA)                │
-│     https://vortex-console.vercel.app            │
+│     https://vortex-v2-orcin.vercel.app           │
 └───────────────────────┬──────────────────────────┘
                         │ HTTPS (fetch / SSE)
                         ▼
 ┌──────────────────────────────────────────────────┐
 │          RAILWAY (Hobby Plan — $5/mo)            │
 │    FastAPI API Gateway + Background Worker       │
-│  https://vortex-api-production.up.railway.app    │
+│  https://vortex-v2-production.up.railway.app    │
 └──────────┬───────────────────────┬───────────────┘
            │                       │
            ▼                       ▼

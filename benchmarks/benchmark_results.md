@@ -1,6 +1,6 @@
 # VoRTeX Benchmark Execution Report
 
-Generated on: 2026-08-24 13:41:19 UTC
+Generated on: 2026-08-24 17:24:20 UTC
 
 ## 1. Safety & Guardrails Engine Benchmark
 
@@ -10,8 +10,8 @@ Evaluating `PromptInjectionValidator` accuracy & latency over synthetic & real i
 |---|---|
 | **Evaluated Samples** | 50 |
 | **Detection Accuracy** | **88.0%** |
-| **Latency (p50)** | `0.04 ms` |
-| **Latency (p95)** | `0.11 ms` |
+| **Latency (p50)** | `0.05 ms` |
+| **Latency (p95)** | `0.17 ms` |
 
 ---
 
@@ -22,9 +22,9 @@ Evaluating `ModelRouter` throughput, token consumption, and cost tracking with `
 | Metric | Value |
 |---|---|
 | **Total Requests** | 20 |
-| **Throughput** | **228.17 req/sec** |
-| **Latency (p50)** | `3.97 ms` |
-| **Latency (p95)** | `11.07 ms` |
+| **Throughput** | **182.81 req/sec** |
+| **Latency (p50)** | `4.97 ms` |
+| **Latency (p95)** | `12.25 ms` |
 | **Input Tokens** | 1,810 |
 | **Output Tokens** | 1,890 |
 | **Total Cost (USD)** | **$0.001390** |
