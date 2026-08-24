@@ -47,9 +47,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
+      - name: Install dependencies (including dev tools)
         run: |
-          uv sync
+          uv sync --all-extras
 
       - name: Lint with Ruff
         run: |
