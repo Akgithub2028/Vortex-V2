@@ -224,7 +224,7 @@ async def list_workflow_runs(
                 id=run.id,
                 status=run.status,
                 input=run.input or {},
-                output=run.output,
+                output=run.output if run.output is not None else (run.checkpoint.get("completed_nodes") if isinstance(run.checkpoint, dict) else {}),
                 total_tokens=run.total_tokens,
                 total_cost_usd=float(run.total_cost_usd),
                 created_at=run.created_at.isoformat() if run.created_at else "",
