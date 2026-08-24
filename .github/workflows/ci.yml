@@ -63,7 +63,7 @@ jobs:
       - name: Run unit tests with coverage
         env:
           VORTEX_ENVIRONMENT: testing
-          VORTEX_DATABASE_URL: postgresql+asyncpg://vortex:vortex@localhost:5432/vortex
+          VORTEX_DATABASE_URL: sqlite+aiosqlite:///file:memdb1?mode=memory&cache=shared&uri=true
           VORTEX_REDIS_URL: redis://localhost:6379/0
         run: |
           uv run pytest tests/unit -v --cov=src/vortex --cov-report=xml
