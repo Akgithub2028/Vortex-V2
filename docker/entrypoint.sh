@@ -9,13 +9,18 @@ echo "Port: ${PORT:-8000}"
 echo "Running database migrations..."
 alembic upgrade head 2>/dev/null || echo "⚠ Migration skipped (no alembic config or DB not ready yet)"
 
-# Start the API server, binding to Railway's injected $PORT (default 8000)
+# Ensure port matches Railway's EXPOSE 8000 proxy target
+PORT="${PORT:-8000}"
+if [ "$PORT" = "8080" ]; then
+    PORT="8000"
+fi
+
 LOG_LEVEL="${VORTEX_LOG_LEVEL:-info}"
 LOG_LEVEL="${LOG_LEVEL,,}"
 
 exec uvicorn vortex.api.main:create_app \
   --factory \
   --host 0.0.0.0 \
-  --port "${PORT:-8000}" \
+  --port "${PORT}" \
   --workers "${VORTEX_API_WORKERS:-1}" \
   --log-level "${LOG_LEVEL}"
