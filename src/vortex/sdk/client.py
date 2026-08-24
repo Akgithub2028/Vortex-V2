@@ -27,7 +27,7 @@ class VortexClient:
         self,
         base_url: str = "http://localhost:8000",
         api_key: str | None = None,
-        timeout: float = 30.0,
+        timeout: float = 120.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key

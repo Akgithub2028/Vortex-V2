@@ -17,7 +17,7 @@ async def main():
     )
     wf.add_llm_node(
         node_id="refine",
-        prompt="Polish and expand this outline into 3 key bullet points:\n\n{draft.text}",
+        prompt="Polish and expand this outline into 3 bullet points.",
         model="nvidia/meta/llama-3.1-70b-instruct",
         dependencies=["draft"],
     )

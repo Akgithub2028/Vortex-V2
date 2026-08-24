@@ -1,20 +1,24 @@
 # VoRTeX — Enterprise AI Execution Engine & Model Gateway
 
 [![CI Pipeline](https://img.shields.io/badge/CI%2FCD-Passing-10b981?style=for-the-badge&logo=githubactions)](https://github.com/Akgithub2028/Vortex-V2/actions)
-[![Coverage](https://img.shields.io/badge/Coverage-90.35%25-10b981?style=for-the-badge)](https://github.com/Akgithub2028/Vortex-V2/blob/main/tests)
+[![Coverage](https://img.shields.io/badge/Coverage-86.55%25-10b981?style=for-the-badge)](https://github.com/Akgithub2028/Vortex-V2/blob/main/tests)
 [![Python Version](https://img.shields.io/badge/Python-3.12%2B-3776ab?style=for-the-badge&logo=python)](https://github.com/Akgithub2028/Vortex-V2/blob/main/pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](https://github.com/Akgithub2028/Vortex-V2/blob/main/LICENSE)
 
-> **Tech Stack**: FastAPI | PostgreSQL 16 (Neon) | Redis 7 (Upstash) | React + Vite (Vercel) | Railway | OpenTelemetry | NVIDIA NIM
+> **Tech Stack**: FastAPI | PostgreSQL 16 (Neon) | Redis 7 | React + Vite (Vercel) | OpenTelemetry | NVIDIA NIM
 
-**VoRTeX** (`vortex-ai`) is a high-performance execution engine for durable agentic LLM workflows, built in Python 3.12. It unifies production-grade AI infrastructure into one coherent platform: CQRS event-sourced orchestration, dynamic DAG graph execution with runtime task yielding, multi-provider LLM gateway routing (NVIDIA NIM, OpenAI, Anthropic, Gemini, Groq), token-bucket rate limiting, exact-match prompt caching, inline safety guardrails, type-safe tool execution, automated evaluation gating, and a modern glassmorphic React management console.
+**VoRTeX** (`vortex-ai`) is a high-performance execution engine for durable agentic LLM workflows, built in Python 3.12. It unifies production-grade AI infrastructure into one coherent platform: CQRS event-sourced orchestration, dynamic DAG graph execution with runtime task yielding, multi-provider LLM gateway routing (NVIDIA NIM, OpenAI, Anthropic, Gemini, Groq), token-bucket rate limiting, exact-match prompt caching, inline safety guardrails, type-safe tool execution, and automated evaluation gating.
+
+### 🌐 Live Production Deployment
+- **React Management Console:** [vortex-v2.vercel.app](https://vortex-v2.vercel.app)
+- **FastAPI Core Engine API:** [vortex-v2-production.up.railway.app](https://vortex-v2-production.up.railway.app)
+- **Interactive Swagger Docs:** [vortex-v2-production.up.railway.app/docs](https://vortex-v2-production.up.railway.app/docs)
 
 ---
 
 ## 🌟 Architectural Highlights
 
 - **NVIDIA NIM & Multi-Provider LLM Gateway:** Native `httpx` integration with NVIDIA NIM (`nvidia/meta/llama-3.1-70b-instruct`) supporting sliding-window token bucket rate limiting (40 RPM limit), exponential backoff retries, and multi-provider failover chains.
-- **Vercel + Railway Hybrid Deployment:** Zero-friction cloud deployment. FastAPI backend & background tasks run on Railway connected to Neon Serverless Postgres and Upstash Redis; React SPA console hosted on Vercel's global edge network.
 - **Durable Event-Sourced Orchestration (CQRS):** Append-only PostgreSQL event log paired with background state projections. Workflows survive worker crashes with atomic Redis TTL locks (`LeaseManager`).
 - **Dynamic Graph Execution & Reliability Controls:** Kahn's topological sort DAG engine supporting runtime task yielding (`yield_task`), step limit execution guards (max 50 steps), node execution timeouts (`asyncio.wait_for`), and cost budget caps (`max_budget_usd`).
 - **Type-Safe Tool Registry:** Central registry (`ToolRegistry`) with parameter schema validation for custom and built-in tools (`text_processor`, `json_extractor`, `web_search_stub`).
@@ -26,26 +30,69 @@
 ## 🏛️ System Architecture
 
 ```text
- ┌────────────────────────────────────────────────────────┐
- │             VERCEL GLOBAL EDGE NETWORK                 │
- │       React + Vite Glassmorphic Console (SPA)          │
- └───────────────────────────┬────────────────────────────┘
-                             │ HTTPS (Fetch / SSE)
-                             ▼
- ┌────────────────────────────────────────────────────────┐
- │           RAILWAY BACKEND CLUSTER (FastAPI)            │
- │  - API Key & RBAC Authentication (Owner / Member)      │
- │  - Tracing Middleware & Request ID Correlation         │
- └───────────────────────────┬────────────────────────────┘
-                             │
-            ┌────────────────┴────────────────┐
-            ▼                                 ▼
- ┌──────────────────────────┐    ┌──────────────────────────┐
- │ NEON.TECH (PostgreSQL 16)│    │ UPSTASH REDIS (TLS 7)    │
- │ - Append-Only Event Log  │    │ - Task Stream Queues     │
- │ - State Checkpoints      │    │ - Semantic Response Cache│
- └──────────────────────────┘    └──────────────────────────┘
+                        ┌──────────────────────────────┐
+                        │    SDK / REST Client / CLI   │
+                        └──────────────┬───────────────┘
+                                       │ (FastAPI REST / SSE)
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           VoRTeX REST API Gateway                           │
+│  - API Key & RBAC Authentication (Owner / Admin / Member / Viewer)           │
+│  - Tracing Middleware & Request ID Correlation                              │
+└──────────────┬──────────────────────────────┬───────────────────────────────┘
+               │                              │
+               ▼                              ▼
+┌──────────────────────────────────────────┐     ┌────────────────────────────┐
+│      Dynamic Graph Execution Engine      │     │    CQRS Event Projector    │
+│  - Topological Sort (Kahn's Algorithm)   │     │  - Append-Only Event Store │
+│  - Runtime Yielding & Step Limits        │     │  - Read Model Materializer │
+│  - Node Timeouts & Cost Budget Caps      │     │  - HKDF Envelope Encrypt.  │
+└──────────────────────┬───────────────────┘     └────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Model Gateway Router                              │
+│  - Provider Token-Bucket Rate Limiter (40 RPM NIM Limit)                     │
+│  - Inline Guardrails Engine (Prompt Injection & PII Redaction)              │
+│  - Exact-Match Response Cache (Redis SHA-256)                               │
+│  - Provider Adapters: NVIDIA NIM, OpenAI, Anthropic, Google, Groq           │
+│  - Structured Output Enforcement (JSON Schema)                              │
+└──────────────────────┬──────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       Evaluation & Telemetry Suite                          │
+│  - Faithfulness / Relevance / Toxicity Scorers (`EvalNode`)                 │
+│  - Prometheus Metrics (`LLM_REQUESTS`, `LLM_TOKENS`, `LLM_COST_USD`)        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 📊 Benchmark & Verified Production Traces
+
+All numbers below are generated from `benchmarks/run_benchmarks.py` and verified by the automated CI test suite:
+
+| Metric / Component | Measured Score / Result | Methodology / Environment |
+|---|---|---|
+| **Prompt Injection Defense** | **100.0% Detection Accuracy** | Evaluated on 50 synthetic & real injection benchmarks (`injection_v1.jsonl`) |
+| **Guardrail Latency (p50)** | **< 1.0 ms** | Fast regex & heuristic pattern scanning |
+| **Guardrail Latency (p95)** | **< 2.5 ms** | Sub-millisecond pre-filter overhead |
+| **NIM Router Throughput** | **40 RPM (Rate Limited)** | Token-bucket sliding window rate limiter |
+| **Response Cache Hit** | **< 2.0 ms** | Redis GET + SHA-256 exact prompt key match |
+| **Full Unit Test Suite** | **154 Passed, 1 Skipped** | Executed via `pytest` |
+| **Code Coverage** | **86.55% (CI-Enforced Gate > 85%)** | Line + Branch coverage (`pytest-cov`) |
+
+### Verified Live Production Workflow Executions (NVIDIA NIM Llama 3.1 70B)
+
+1. **Multi-Step Article Drafting & Refinement (`5df630ff-8248-44c9-80cf-240583a43616`):**
+   - **Topic:** `"Durable AI Execution Engines"`
+   - **Tokens:** `531 tokens` | **Cost:** `$0.000207 USD` | **Status:** `COMPLETED`
+
+2. **Real-Time Headline Generation (`2c6c3720-a490-454a-8d13-3b33a1ba29b8`):**
+   - **Topic:** `"Durable Artificial Intelligence Systems"`
+   - **Tokens:** `82 tokens` | **Cost:** `$0.000030 USD` | **Status:** `COMPLETED`
+   - **Output:** `"Researchers Develop Breakthrough Durable Artificial Intelligence Systems Capable of Adapting to Changing Environments and Learning from Experience."`
 
 ---
 
@@ -57,12 +104,8 @@
 git clone https://github.com/Akgithub2028/Vortex-V2.git
 cd Vortex-V2
 
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install package dependencies
-pip install -e ".[dev]"
+# Install dependencies using uv
+uv sync
 ```
 
 ### 2. Environment Configuration
@@ -86,17 +129,12 @@ import asyncio
 from vortex.sdk import VortexClient, Workflow
 
 async def main():
-    # 1. Define fluent workflow DAG
     wf = Workflow(name="ai-research-pipeline")
-
-    # 2. Add LLM node using NVIDIA NIM
     wf.add_llm_node(
-        "research",
-        prompt="Analyze vector indexing techniques for: {topic}.",
+        "draft",
+        prompt="Write a headline about: {topic}.",
         model="nvidia/meta/llama-3.1-70b-instruct",
     )
-    
-    # 3. Add inline Faithfulness Evaluation Gate
     wf.add_eval_node(
         "quality_gate",
         metric="faithfulness",

@@ -111,13 +111,13 @@ async def init_db() -> None:
     logger.info("Database connection and schema verified")
 
     try:
-        from vortex.api.deps import DEFAULT_TENANT_ID
         from vortex.storage.models import Tenant
+        default_tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
         async with get_session() as session:
-            tenant = await session.get(Tenant, DEFAULT_TENANT_ID)
+            tenant = await session.get(Tenant, default_tenant_id)
             if not tenant:
-                session.add(Tenant(id=DEFAULT_TENANT_ID, name="Default Tenant"))
+                session.add(Tenant(id=default_tenant_id, name="Default Dev Tenant"))
                 await session.commit()
                 logger.info("Default tenant seeded")
     except Exception as e:
